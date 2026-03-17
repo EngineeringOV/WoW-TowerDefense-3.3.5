@@ -69,23 +69,25 @@ function TD.RefreshMenu() if not TD.ui.mapCards then return end
 -- ============================================================
 function TD.CreateEquip() if TD.frames.equipFrame then return end
     local ef=CreateFrame("Frame",nil,TD.frames.main); ef:SetPoint("TOPLEFT",14,-14); ef:SetPoint("BOTTOMRIGHT",-14,14); ef:Hide(); TD.frames.equipFrame=ef
-    local iW=FW-80
+    local iW=FW-220; local pad=math.floor((FW-28-iW)/2)
     local eqT=TD.Lbl(ef,22,0.85,0.7,0.35); eqT:SetPoint("TOP",0,-8); eqT:SetText("Loadout")
     local eqS=TD.Lbl(ef,12,0.7,0.6,0.45); eqS:SetPoint("TOP",0,-30); eqS:SetText("Equip 3 items and choose specializations")
-    local slots={}; local slotW=math.floor(iW/3)
+    local slots={}; local slotGap=8; local slotW=math.floor((iW-slotGap*2)/3)
     for s=1,3 do local sf=CreateFrame("Button",nil,ef); sf:SetSize(slotW,56)
-        sf:SetPoint("TOPLEFT",ef,"TOPLEFT",30+(s-1)*(slotW+8),-48)
+        sf:SetPoint("TOPLEFT",ef,"TOPLEFT",pad+(s-1)*(slotW+slotGap),-48)
         sf:SetBackdrop({bgFile=PARCHMENT2,edgeFile=TOOLTIPBDR,edgeSize=14,tile=false,insets={left=3,right=3,top=3,bottom=3}})
         sf:SetBackdropColor(0.6,0.55,0.45,0.95); sf:SetBackdropBorderColor(0.55,0.45,0.3,1)
         local slab=TD.Lbl(sf,10,0.75,0.65,0.5); slab:SetPoint("TOPLEFT",8,-4); slab:SetText("Slot "..s)
         sf.itemL=TD.Lbl(sf,13,0.8,0.65,0.35); sf.itemL:SetPoint("CENTER",0,0); sf.itemL:SetWidth(slotW-20); sf.itemL:SetJustifyH("CENTER")
         sf.descL=TD.Lbl(sf,10,0.75,0.65,0.5); sf.descL:SetPoint("BOTTOM",0,6); sf.descL:SetWidth(slotW-20); sf.descL:SetJustifyH("CENTER")
         sf:SetScript("OnClick",function() if TD.equipSelItem then TD.SetEquipped(s,TD.equipSelItem); TD.equipSelItem=nil; TD.RefreshEquip() end end); slots[s]=sf end; TD.ui.eqSlots=slots
+    -- Set bonus display (between slots and scroll)
+    TD.ui.setBonusL=TD.Lbl(ef,11,0.6,0.8,0.4); TD.ui.setBonusL:SetPoint("TOP",0,-108); TD.ui.setBonusL:SetWidth(iW)
     -- Scrollable area for items + specs
-    local scrollTop=112; local scrollBot=42
-    local scrollFrame=CreateFrame("ScrollFrame",nil,ef); scrollFrame:SetPoint("TOPLEFT",ef,"TOPLEFT",28,-scrollTop); scrollFrame:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-28,scrollBot)
+    local scrollTop=124; local scrollBot=42
+    local scrollFrame=CreateFrame("ScrollFrame",nil,ef); scrollFrame:SetPoint("TOPLEFT",ef,"TOPLEFT",pad,-scrollTop); scrollFrame:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-pad,scrollBot)
     local scrollChild=CreateFrame("Frame",nil,scrollFrame); scrollFrame:SetScrollChild(scrollChild)
-    local scrollW=iW-6
+    local scrollW=iW
     scrollChild:SetWidth(scrollW)
     -- Scroll bar
     local scrollBar=CreateFrame("Slider",nil,scrollFrame); scrollBar:SetWidth(14); scrollBar:SetPoint("TOPRIGHT",scrollFrame,"TOPRIGHT",16,0); scrollBar:SetPoint("BOTTOMRIGHT",scrollFrame,"BOTTOMRIGHT",16,0)
@@ -109,7 +111,19 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
         ib.nameL=TD.Lbl(ib,10,0.9,0.85,0.7); ib.nameL:SetPoint("TOPLEFT",22,-3); ib.nameL:SetWidth(bw-28); ib.nameL:SetJustifyH("LEFT"); ib.nameL:SetText(d.name)
         local dl=TD.Lbl(ib,9,0.8,0.7,0.55); dl:SetPoint("TOPLEFT",5,-18); dl:SetWidth(bw-10); dl:SetJustifyH("LEFT"); dl:SetText(d.desc)
         ib.statL=TD.Lbl(ib,9,0.75,0.65,0.5); ib.statL:SetPoint("BOTTOM",0,3); ib.itemId=itemId
-        ib:SetScript("OnClick",function() if TD.HasItem(itemId) then TD.equipSelItem=itemId; TD.RefreshEquip() end end); TD.ui.itemBtns[i]=ib end
+        ib:SetScript("OnClick",function() if TD.HasItem(itemId) then TD.equipSelItem=itemId; TD.RefreshEquip() end end)
+        -- Tooltip with set bonus info
+        ib:SetScript("OnEnter",function(self)
+            GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:AddLine(d.name,d.color[1],d.color[2],d.color[3]); GameTooltip:AddLine(d.desc,0.9,0.85,0.75)
+            local setInfo=TD.GetItemSet(itemId)
+            if setInfo then GameTooltip:AddLine(" "); GameTooltip:AddLine(setInfo.name.." (2 Set)",setInfo.color[1],setInfo.color[2],setInfo.color[3])
+                for _,sid in ipairs(setInfo.items) do local sd=TD.ITEM_DEFS[sid]; local eq=TD.IsEquipped(sid)
+                    if eq then GameTooltip:AddLine("  "..sd.name,0.3,1,0.3) else GameTooltip:AddLine("  "..sd.name,0.5,0.5,0.5) end end
+                local bothEq=true; for _,sid in ipairs(setInfo.items) do if not TD.IsEquipped(sid) then bothEq=false end end
+                if bothEq then GameTooltip:AddLine("(2) "..setInfo.desc,0.3,1,0.3) else GameTooltip:AddLine("(2) "..setInfo.desc,0.5,0.5,0.5) end
+            end; GameTooltip:Show() end)
+        ib:SetScript("OnLeave",function() GameTooltip:Hide() end)
+        TD.ui.itemBtns[i]=ib end
     local itemRows=math.ceil(#TD.ITEM_ORDER/icols)
     local specY=-18-itemRows*(bh+4)-10
     -- Tower Specializations header
@@ -151,9 +165,9 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
     local visH=FH-28-scrollTop-scrollBot
     if totalH>visH then scrollBar:SetMinMaxValues(0,totalH-visH); scrollBar:Show() else scrollBar:SetMinMaxValues(0,0); scrollBar:Hide() end
     -- Bottom buttons (fixed, not scrolling)
-    local back=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); back:SetSize(130,28); back:SetPoint("BOTTOMLEFT",ef,"BOTTOMLEFT",30,8)
+    local back=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); back:SetSize(130,28); back:SetPoint("BOTTOMLEFT",ef,"BOTTOMLEFT",pad,8)
     back:SetText("Back"); back:SetScript("OnClick",function() TD.equipSelItem=nil; TD.ShowMenu() end)
-    TD.ui.eqPlayBtn=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); TD.ui.eqPlayBtn:SetSize(160,32); TD.ui.eqPlayBtn:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-30,8)
+    TD.ui.eqPlayBtn=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); TD.ui.eqPlayBtn:SetSize(160,32); TD.ui.eqPlayBtn:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-pad,8)
     TD.ui.eqPlayBtn:SetText("Start Battle"); TD.ui.eqPlayBtn:SetScript("OnClick",function()
         if TD.game.pendingMapIndex then TD.equipSelItem=nil; TD.StartMap(TD.game.pendingMapIndex) end end) end
 
@@ -170,7 +184,12 @@ function TD.RefreshEquip() TD.EnsureSaved()
         if not u then sb:SetBackdropColor(0.06,0.05,0.04,0.9); sb:SetBackdropBorderColor(0.15,0.12,0.1,0.5); sb.nameL:SetTextColor(0.45,0.4,0.3); sb.statL:SetText("|cff888866Locked|r")
         elseif sel then sb:SetBackdropBorderColor(1,0.85,0.3,1); sb:SetBackdropColor(spec.color[1]*0.3,spec.color[2]*0.3,spec.color[3]*0.3,0.9); sb.nameL:SetTextColor(1,0.95,0.8); sb.statL:SetText("|cff44aa44Active|r")
         else sb:SetBackdropBorderColor(spec.color[1]*0.5,spec.color[2]*0.5,spec.color[3]*0.5,0.6); sb:SetBackdropColor(spec.color[1]*0.12,spec.color[2]*0.12,spec.color[3]*0.12,0.9); sb.nameL:SetTextColor(0.7,0.65,0.5); sb.statL:SetText("") end end
-    if TD.game.pendingMapIndex then TD.ui.eqPlayBtn:SetText("Start Battle"); TD.ui.eqPlayBtn:Enable() else TD.ui.eqPlayBtn:SetText("(pick a map)"); TD.ui.eqPlayBtn:Disable() end end
+    if TD.game.pendingMapIndex then TD.ui.eqPlayBtn:SetText("Start Battle"); TD.ui.eqPlayBtn:Enable() else TD.ui.eqPlayBtn:SetText("(pick a map)"); TD.ui.eqPlayBtn:Disable() end
+    -- Show active set bonuses
+    local st=TD.GetEquippedStats(); local setTxt=""
+    if st.activeSets and #st.activeSets>0 then for _,set in ipairs(st.activeSets) do
+        if setTxt~="" then setTxt=setTxt.."  " end; setTxt=setTxt.."|cff"..HexC(set.color)..set.name.."|r: "..set.desc end end
+    TD.ui.setBonusL:SetText(setTxt) end
 
 function TD.ShowEquip() TD.frames.menuFrame:Hide(); if TD.frames.gameFrame then TD.frames.gameFrame:Hide() end; TD.CreateEquip(); TD.RefreshEquip(); TD.frames.equipFrame:Show(); TD.game.state=TD.S_EQUIP end
 
@@ -278,7 +297,8 @@ function TD.ShowUpgrade(tower)
     -- Show paladin buff if any
     local pD,pS,pR=TD.GetPaladinBuff(tower); if pD>0 or pS>0 then info=info.."\n|cffffff88Paladin: +"..(math.floor(pD*100)).."%dmg +"..(math.floor(pS*100)).."%spd|r" end
     uf.infoL:SetText(info)
-    if t<3 then local cost=spec.upgradeCost[t+1]; uf.upBtn:SetText("T"..(t+1).." ("..cost.."g)"); uf.upBtn:Show()
+    if t<3 then local cost=spec.upgradeCost[t+1]; if st.upgradeCostMult then cost=math.floor(cost*st.upgradeCostMult) end
+        uf.upBtn:SetText("T"..(t+1).." ("..cost.."g)"); uf.upBtn:Show()
         uf.upBtn:SetScript("OnClick",function() if TD.game.gold>=cost then TD.game.gold=TD.game.gold-cost; TD.game.tracking.goldSpent=TD.game.tracking.goldSpent+cost
             tower.tier=t+1; tower.cooldownTimer=0; tower.frame.tierL:SetText("T"..tower.tier); TD.ShowUpgrade(tower); TD.UpdateHUD() end end)
         uf:SetHeight(135) else uf.upBtn:Hide(); uf:SetHeight(110) end
@@ -286,7 +306,8 @@ function TD.ShowUpgrade(tower)
     uf:ClearAllPoints(); uf:SetPoint("BOTTOM",tower.frame,"TOP",0,8); uf:Show(); TD.activeTowerPanel=tower end
 
 function TD.HideUpgrade() if TD.frames.upgradeFrame then TD.frames.upgradeFrame:Hide() end; TD.activeTowerPanel=nil end
-function TD.SellValue(tower) local spec=TD.game.activeSpecs[tower.specIdx]; local total=spec.baseCost; for t=2,tower.tier do total=total+(spec.upgradeCost[t] or 0) end; return math.floor(total*0.5) end
+function TD.SellValue(tower) local spec=TD.game.activeSpecs[tower.specIdx]; local total=spec.baseCost; for t=2,tower.tier do total=total+(spec.upgradeCost[t] or 0) end
+    local pct=0.5; local st=TD.game.equippedStats; if st and st.sellMult then pct=st.sellMult end; return math.floor(total*pct) end
 function TD.SellTower(tower) TD.game.gold=TD.game.gold+TD.SellValue(tower); TD.game.tracking.sellCount=TD.game.tracking.sellCount+1; tower.frame:Hide()
     for i,t in ipairs(TD.game.towers) do if t==tower then table.remove(TD.game.towers,i); break end end; TD.UpdateHUD() end
 

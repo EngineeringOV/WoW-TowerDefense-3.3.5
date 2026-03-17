@@ -158,18 +158,37 @@ function TD.TowerEffective(tower)
     if cd<0.1 then cd=0.1 end; return math.floor(dmg+0.5),rng,cd
 end
 
-function TD.DamageEnemy(en,damage,tower)
+function TD.DamageEnemy(en,damage,tower,isSplash)
     local st=TD.game.equippedStats; local spec=TD.game.activeSpecs[tower.specIdx]; local imm=en.immunity
     if imm=="nomagic" and spec.family=="mage" then return end; if imm=="nophysic" and spec.family=="hunter" then return end
     if en.shieldCharges and en.shieldCharges>0 then en.shieldCharges=en.shieldCharges-1; return end
     if en.dmgReduce then damage=math.floor(damage*(1-en.dmgReduce)) end
+    -- Item damage modifiers
+    if st.firstStrikeMult and en.hp>=en.maxHP then damage=math.floor(damage*st.firstStrikeMult) end
+    if st.bossDmgMult and en.isBoss then damage=math.floor(damage*st.bossDmgMult) end
+    if st.slowedDmgMult and en.slowTimer and en.slowTimer>0 then damage=math.floor(damage*st.slowedDmgMult) end
+    if st.executeMult and st.executePct and (en.hp/en.maxHP)<=st.executePct then damage=math.floor(damage*st.executeMult) end
+    if st.speedDmgMult and st.speedThreshold and en.baseSpeed>=st.speedThreshold then damage=math.floor(damage*st.speedDmgMult) end
+    if st.dmgPerLifeLost and TD.game.tracking.livesLost>0 then damage=math.floor(damage*(1+st.dmgPerLifeLost*TD.game.tracking.livesLost)) end
+    if st.critChance and math.random()<st.critChance then damage=math.floor(damage*(st.critMult or 1.5)); TD.FlashEnemy(en,1,1,0.3) end
     en.hp=en.hp-damage; if en.isBoss then TD.BossOnHit(en) end
     if en.hp<=0 then en.alive=false; en.frame:Hide()
-        local rw=en.reward; if st.goldMult then rw=math.floor(rw*st.goldMult) end; TD.game.gold=TD.game.gold+rw
+        local rw=en.reward; if st.goldMult then rw=math.floor(rw*st.goldMult) end
+        if st.flatBounty then rw=rw+st.flatBounty end
+        if st.splashBounty and isSplash then rw=rw+st.splashBounty end
+        if st.bossGoldMult and en.isBoss then rw=math.floor(rw*st.bossGoldMult) end
+        TD.game.gold=TD.game.gold+rw
+        -- Death splash AoE
+        if st.deathSplash and st.deathSplash>0 then local rad=st.deathSplashRadius or 60
+            for _,e in ipairs(TD.game.enemies) do if e.alive and e~=en and TD.Dist(en.x,en.y,e.x,e.y)<=rad then
+                e.hp=e.hp-st.deathSplash; TD.FlashEnemy(e,1,0.6,0.2) end end end
         if en.isBoss then DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." defeated! +"..rw.."g") end
     else
         if imm~="noslow" then local ti=tower.tier; local sp=TD.TS(spec,"slowPct",ti); local sd=TD.TS(spec,"slowDur",ti)
-            if st.slowDurMult and sd>0 then sd=sd*st.slowDurMult end; if sp>0 then en.speed=en.baseSpeed*(1-sp); en.slowTimer=sd end end
+            if st.slowDurMult and sd>0 then sd=sd*st.slowDurMult end; if sp>0 then en.speed=en.baseSpeed*(1-sp); en.slowTimer=sd end
+            -- Proc slow from item (only if tower doesn't already slow)
+            if st.procSlowChance and sp==0 and math.random()<st.procSlowChance then
+                en.speed=en.baseSpeed*(1-(st.procSlowPct or 0.20)); en.slowTimer=(st.procSlowDur or 2.0) end end
         if imm~="nodot" then local dot=TD.TS(spec,"dot",tower.tier); if dot>0 then en.dots[#en.dots+1]={dps=dot*(st.dotMult or 1),remaining=3.0} end end
     end end
 
@@ -183,7 +202,14 @@ function TD.UpdateEnemies(elapsed) local g=TD.game; local rem={}
             -- Flash timer
             if e.flashTimer and e.flashTimer>0 then e.flashTimer=e.flashTimer-elapsed; if e.flashTimer<=0 then e.frame.flash:SetAlpha(0) end end
             if e.hp<=0 then e.alive=false; e.frame:Hide(); rem[#rem+1]=i
-                local rw=e.reward; if g.equippedStats.goldMult then rw=math.floor(rw*g.equippedStats.goldMult) end; g.gold=g.gold+rw
+                local rw=e.reward; local est=g.equippedStats
+                if est.goldMult then rw=math.floor(rw*est.goldMult) end
+                if est.flatBounty then rw=rw+est.flatBounty end
+                if est.bossGoldMult and e.isBoss then rw=math.floor(rw*est.bossGoldMult) end
+                g.gold=g.gold+rw
+                if est.deathSplash and est.deathSplash>0 then local rad=est.deathSplashRadius or 60
+                    for _,o in ipairs(g.enemies) do if o.alive and o~=e and TD.Dist(e.x,e.y,o.x,o.y)<=rad then
+                        o.hp=o.hp-est.deathSplash; TD.FlashEnemy(o,1,0.6,0.2) end end end
             else local tgt=TD.currentPathPoints[e.pathIndex]
                 if not tgt then g.lives=g.lives-1; g.tracking.livesLost=g.tracking.livesLost+1; if g.wave>15 then g.tracking.latelivesLost=g.tracking.latelivesLost+1 end
                     e.alive=false; e.frame:Hide(); rem[#rem+1]=i; if g.lives<=0 then g.state=TD.S_OVER; TD.SaveMapProgress(g.currentMap.id,g.wave,g.totalWaves,0,g.currentMap.startLives) end
@@ -220,7 +246,7 @@ function TD.UpdateProjectiles(elapsed) local rem={}; local spd=TD.PROJ_SPEED
                 -- Splash visual: flash hit enemies orange
                 if p.splash>0 and p.target.immunity~="noaoe" then
                     for _,e in ipairs(TD.game.enemies) do if e~=p.target and e.alive and e.immunity~="noaoe" and not e.vanished and TD.Dist(tx,ty,e.x,e.y)<=p.splash then
-                        TD.DamageEnemy(e,math.floor(p.damage*0.5),p.tower); TD.FlashEnemy(e,1,0.5,0) end end
+                        TD.DamageEnemy(e,math.floor(p.damage*0.5),p.tower,true); TD.FlashEnemy(e,1,0.5,0) end end
                 end
                 p.frame:Hide(); p.active=false; rem[#rem+1]=i
             else p.x=p.x+(dx/dist)*mv; p.y=p.y+(dy/dist)*mv; p.frame:ClearAllPoints(); p.frame:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",p.x,-p.y) end
@@ -253,7 +279,9 @@ function TD.CheckWaveComplete() local g=TD.game; if g.state~=TD.S_PLAY then retu
     if #g.spawnQueue==0 and #g.enemies==0 then
         if g.wave>=g.totalWaves then g.state=TD.S_WIN; TD.SaveMapProgress(g.currentMap.id,g.wave,g.totalWaves,g.lives,g.currentMap.startLives)
             TD.CheckChallenges(g.currentMap,g.tracking); TD.UpdateHUD(); return end
-        g.state=TD.S_BREAK; g.waveImmunity=nil; local bonus=3+g.wave; g.gold=g.gold+bonus
+        g.state=TD.S_BREAK; g.waveImmunity=nil; local bonus=3+g.wave; local st=g.equippedStats
+        if st.waveGoldBonus then bonus=bonus+st.waveGoldBonus end; g.gold=g.gold+bonus
+        if st.waveLifeRegen then local maxLives=g.currentMap.startLives+(st.bonusLives or 0); g.lives=math.min(g.lives+st.waveLifeRegen,maxLives) end
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r W"..g.wave.." cleared! +"..bonus.."g"); TD.UpdateHUD()
         -- Auto-wave: immediately start next wave
         if g.autoWave then TD.StartWave() end
