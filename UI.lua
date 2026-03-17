@@ -106,8 +106,7 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
     scrollBar:SetMinMaxValues(0,1); scrollBar:SetValue(0)
     scrollBar:SetScript("OnValueChanged",function(self,val) scrollFrame:SetVerticalScroll(val) end)
     scrollFrame:EnableMouseWheel(true)
-    scrollFrame:SetScript("OnMouseWheelUp",function(self) local cur=scrollBar:GetValue(); scrollBar:SetValue(math.max(0,cur-40)) end)
-    scrollFrame:SetScript("OnMouseWheelDown",function(self) local _,mx=scrollBar:GetMinMaxValues(); local cur=scrollBar:GetValue(); scrollBar:SetValue(math.min(mx,cur+40)) end)
+    scrollFrame:SetScript("OnMouseWheel",function(self,delta) local cur=scrollBar:GetValue(); if delta>0 then scrollBar:SetValue(math.max(0,cur-40)) else local _,mx=scrollBar:GetMinMaxValues(); scrollBar:SetValue(math.min(mx,cur+40)) end end)
     TD.ui.eqScrollBar=scrollBar; TD.ui.eqScrollFrame=scrollFrame; TD.ui.eqScrollChild=scrollChild
     -- Items header
     local invT=TD.Lbl(scrollChild,12,0.7,0.6,0.45); invT:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,0); invT:SetText("Items (click to select, then click a slot)")
