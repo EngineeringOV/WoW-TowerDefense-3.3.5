@@ -81,10 +81,28 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
         sf.itemL=TD.Lbl(sf,13,0.8,0.65,0.35); sf.itemL:SetPoint("CENTER",0,0); sf.itemL:SetWidth(slotW-20); sf.itemL:SetJustifyH("CENTER")
         sf.descL=TD.Lbl(sf,10,0.75,0.65,0.5); sf.descL:SetPoint("BOTTOM",0,6); sf.descL:SetWidth(slotW-20); sf.descL:SetJustifyH("CENTER")
         sf:SetScript("OnClick",function() if TD.equipSelItem then TD.SetEquipped(s,TD.equipSelItem); TD.equipSelItem=nil; TD.RefreshEquip() end end); slots[s]=sf end; TD.ui.eqSlots=slots
-    local invT=TD.Lbl(ef,12,0.7,0.6,0.45); invT:SetPoint("TOPLEFT",ef,"TOPLEFT",32,-112); invT:SetText("Items (click to select, then click a slot)")
-    TD.ui.itemBtns={}; local icols=4; local bw=math.floor((iW-(icols-1)*6)/icols); local bh=48
-    for i,itemId in ipairs(TD.ITEM_ORDER) do local ib=CreateFrame("Button",nil,ef); local col=(i-1)%icols; local row=math.floor((i-1)/icols)
-        ib:SetSize(bw,bh); ib:SetPoint("TOPLEFT",ef,"TOPLEFT",30+col*(bw+6),-130-row*(bh+4))
+    -- Scrollable area for items + specs
+    local scrollTop=112; local scrollBot=42
+    local scrollFrame=CreateFrame("ScrollFrame",nil,ef); scrollFrame:SetPoint("TOPLEFT",ef,"TOPLEFT",28,-scrollTop); scrollFrame:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-28,scrollBot)
+    local scrollChild=CreateFrame("Frame",nil,scrollFrame); scrollFrame:SetScrollChild(scrollChild)
+    local scrollW=iW-6
+    scrollChild:SetWidth(scrollW)
+    -- Scroll bar
+    local scrollBar=CreateFrame("Slider",nil,scrollFrame); scrollBar:SetWidth(14); scrollBar:SetPoint("TOPRIGHT",scrollFrame,"TOPRIGHT",16,0); scrollBar:SetPoint("BOTTOMRIGHT",scrollFrame,"BOTTOMRIGHT",16,0)
+    scrollBar:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=10,tile=true,tileSize=16,insets={left=2,right=2,top=2,bottom=2}})
+    scrollBar:SetBackdropColor(0.1,0.1,0.1,0.6); scrollBar:SetBackdropBorderColor(0.3,0.3,0.3,0.5)
+    scrollBar:SetThumbTexture(HIGHLIGHT); scrollBar:SetOrientation("VERTICAL")
+    scrollBar:SetMinMaxValues(0,1); scrollBar:SetValue(0)
+    scrollBar:SetScript("OnValueChanged",function(self,val) scrollFrame:SetVerticalScroll(val) end)
+    scrollFrame:EnableMouseWheel(true)
+    scrollFrame:SetScript("OnMouseWheelUp",function(self) local cur=scrollBar:GetValue(); scrollBar:SetValue(math.max(0,cur-40)) end)
+    scrollFrame:SetScript("OnMouseWheelDown",function(self) local _,mx=scrollBar:GetMinMaxValues(); local cur=scrollBar:GetValue(); scrollBar:SetValue(math.min(mx,cur+40)) end)
+    TD.ui.eqScrollBar=scrollBar; TD.ui.eqScrollFrame=scrollFrame; TD.ui.eqScrollChild=scrollChild
+    -- Items header
+    local invT=TD.Lbl(scrollChild,12,0.7,0.6,0.45); invT:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,0); invT:SetText("Items (click to select, then click a slot)")
+    TD.ui.itemBtns={}; local icols=4; local bw=math.floor((scrollW-(icols-1)*6)/icols); local bh=48
+    for i,itemId in ipairs(TD.ITEM_ORDER) do local ib=CreateFrame("Button",nil,scrollChild); local col=(i-1)%icols; local row=math.floor((i-1)/icols)
+        ib:SetSize(bw,bh); ib:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",2+col*(bw+6),-18-row*(bh+4))
         ib:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
         ib:SetBackdropColor(0.15,0.12,0.1,0.9); ib:SetBackdropBorderColor(0.4,0.35,0.25,0.8)
         local d=TD.ITEM_DEFS[itemId]; local ic=TD.Lbl(ib,16,d.color[1],d.color[2],d.color[3]); ic:SetPoint("TOPLEFT",5,-3); ic:SetText(d.icon)
@@ -92,17 +110,23 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
         local dl=TD.Lbl(ib,9,0.8,0.7,0.55); dl:SetPoint("TOPLEFT",5,-18); dl:SetWidth(bw-10); dl:SetJustifyH("LEFT"); dl:SetText(d.desc)
         ib.statL=TD.Lbl(ib,9,0.75,0.65,0.5); ib.statL:SetPoint("BOTTOM",0,3); ib.itemId=itemId
         ib:SetScript("OnClick",function() if TD.HasItem(itemId) then TD.equipSelItem=itemId; TD.RefreshEquip() end end); TD.ui.itemBtns[i]=ib end
-    local specY=-130-math.ceil(#TD.ITEM_ORDER/icols)*(bh+4)-10
-    local spT=TD.Lbl(ef,12,0.7,0.6,0.45); spT:SetPoint("TOPLEFT",ef,"TOPLEFT",32,specY); spT:SetText("Tower Specializations")
-    TD.ui.specBtns={}; local sBW=math.floor((iW-70)/2); local sBH=38; local sGap=4; local sSY=specY-18
+    local itemRows=math.ceil(#TD.ITEM_ORDER/icols)
+    local specY=-18-itemRows*(bh+4)-10
+    -- Tower Specializations header
+    local spT=TD.Lbl(scrollChild,12,0.7,0.6,0.45); spT:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,specY); spT:SetText("Tower Specializations")
+    TD.ui.specBtns={}; local sBW=math.floor((scrollW-80)/2); local sBH=42; local sGap=4; local sSY=specY-20
+    local iconSz=sBH-10
     for fi,fam in ipairs(TD.FAMILIES) do
-        local famL=TD.Lbl(ef,12,fam.color[1],fam.color[2],fam.color[3]); famL:SetPoint("TOPLEFT",ef,"TOPLEFT",32,sSY-(fi-1)*(sBH+sGap)); famL:SetText(fam.name..":")
-        for si,specId in ipairs(fam.specs) do local spec=TD.SPECS[specId]; local sb=CreateFrame("Button",nil,ef); sb:SetSize(sBW,sBH)
-            sb:SetPoint("TOPLEFT",ef,"TOPLEFT",100+(si-1)*(sBW+8),sSY-(fi-1)*(sBH+sGap))
+        local famL=TD.Lbl(scrollChild,12,fam.color[1],fam.color[2],fam.color[3]); famL:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,sSY-(fi-1)*(sBH+sGap)); famL:SetText(fam.name..":")
+        for si,specId in ipairs(fam.specs) do local spec=TD.SPECS[specId]; local sb=CreateFrame("Button",nil,scrollChild); sb:SetSize(sBW,sBH)
+            sb:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",72+(si-1)*(sBW+8),sSY-(fi-1)*(sBH+sGap))
             sb:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
             sb:SetBackdropColor(spec.color[1]*0.2,spec.color[2]*0.2,spec.color[3]*0.2,0.9); sb:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8)
-            sb.nameL=TD.Lbl(sb,12,0.9,0.85,0.7); sb.nameL:SetPoint("LEFT",8,5); sb.nameL:SetText(spec.letter.." "..spec.name)
-            local sdl=TD.Lbl(sb,9,0.8,0.7,0.55); sdl:SetPoint("BOTTOMLEFT",8,4); sdl:SetWidth(sBW-16); sdl:SetJustifyH("LEFT"); sdl:SetText(spec.desc)
+            -- Class icon
+            local icon=sb:CreateTexture(nil,"ARTWORK"); icon:SetSize(iconSz,iconSz); icon:SetPoint("LEFT",4,0); icon:SetTexture(TD.CLASS_ICON)
+            local coords=TD.CLASS_COORDS[spec.family] or TD.CLASS_COORDS.paladin; icon:SetTexCoord(coords[1],coords[2],coords[3],coords[4])
+            sb.nameL=TD.Lbl(sb,12,0.9,0.85,0.7); sb.nameL:SetPoint("TOPLEFT",iconSz+8,-4); sb.nameL:SetText(spec.letter.." "..spec.name)
+            local sdl=TD.Lbl(sb,9,0.8,0.7,0.55); sdl:SetPoint("BOTTOMLEFT",iconSz+8,4); sdl:SetWidth(sBW-iconSz-16); sdl:SetJustifyH("LEFT"); sdl:SetText(spec.desc)
             sb.statL=TD.Lbl(sb,10,0.75,0.65,0.5); sb.statL:SetPoint("RIGHT",-8,5); sb.specId=specId; sb.famId=fam.id
             sb:SetScript("OnClick",function() if TD.IsSpecUnlocked(specId) then TowerDefenseSaved.specs[fam.id]=specId; TD.RefreshEquip() end end)
             sb:SetScript("OnEnter",function(self) GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:AddLine(spec.name,spec.color[1],spec.color[2],spec.color[3]); GameTooltip:AddLine(spec.desc,0.9,0.85,0.75)
@@ -116,7 +140,17 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
                 if not TD.IsSpecUnlocked(specId) then GameTooltip:AddLine("|cffff4444LOCKED - complete challenges|r") end; GameTooltip:Show() end)
             sb:SetScript("OnLeave",function() GameTooltip:Hide() end); TD.ui.specBtns[specId]=sb end end
     local palY=sSY-#TD.FAMILIES*(sBH+sGap); local ps=TD.SPECS.paladin
-    local palL=TD.Lbl(ef,12,0.9,0.8,0.3); palL:SetPoint("TOPLEFT",ef,"TOPLEFT",32,palY); palL:SetText("Support: "..ps.letter.." "..ps.name.." (hover specs for all tier stats)")
+    -- Paladin support row with class icon
+    local palRow=CreateFrame("Frame",nil,scrollChild); palRow:SetSize(scrollW,20); palRow:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,palY)
+    local palIcon=palRow:CreateTexture(nil,"ARTWORK"); palIcon:SetSize(18,18); palIcon:SetPoint("LEFT",0,0); palIcon:SetTexture(TD.CLASS_ICON)
+    local palCoords=TD.CLASS_COORDS.paladin; palIcon:SetTexCoord(palCoords[1],palCoords[2],palCoords[3],palCoords[4])
+    local palL=TD.Lbl(palRow,12,0.9,0.8,0.3); palL:SetPoint("LEFT",22,0); palL:SetText("Support: "..ps.letter.." "..ps.name.." (hover specs for all tier stats)")
+    -- Calculate total content height and set scroll child size
+    local totalH=math.abs(palY)+24
+    scrollChild:SetHeight(totalH)
+    local visH=FH-28-scrollTop-scrollBot
+    if totalH>visH then scrollBar:SetMinMaxValues(0,totalH-visH); scrollBar:Show() else scrollBar:SetMinMaxValues(0,0); scrollBar:Hide() end
+    -- Bottom buttons (fixed, not scrolling)
     local back=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); back:SetSize(130,28); back:SetPoint("BOTTOMLEFT",ef,"BOTTOMLEFT",30,8)
     back:SetText("Back"); back:SetScript("OnClick",function() TD.equipSelItem=nil; TD.ShowMenu() end)
     TD.ui.eqPlayBtn=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); TD.ui.eqPlayBtn:SetSize(160,32); TD.ui.eqPlayBtn:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-30,8)
