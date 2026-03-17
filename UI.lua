@@ -35,10 +35,11 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
     local su=TD.Lbl(m,14,0.7,0.6,0.45); su:SetPoint("TOP",0,-42); su:SetText("Choose your battlefield")
     local cards={}; local pR=4; local mg=8; local gX=10; local gY=10; local iW=FW-32; local iH=FH-32
     local numRows=math.ceil(#TD.MAPS/pR); local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR)
-    local maxCh=math.floor((iH-68-40-(numRows-1)*gY)/numRows); local ch=math.min(cw,maxCh)
-    local gridH=numRows*ch+(numRows-1)*gY; local gridTop=math.floor((iH-68-40-gridH)/2)+60
+    local maxCh=math.floor((iH-68-40-(numRows-1)*gY)/numRows); local cs=math.min(cw,maxCh)
+    local gridW=pR*cs+(pR-1)*gX; local gridLeft=math.floor((iW-gridW)/2)
+    local gridH=numRows*cs+(numRows-1)*gY; local gridTop=math.floor((iH-68-40-gridH)/2)+60
     for idx,md in ipairs(TD.MAPS) do local col=(idx-1)%pR; local row=math.floor((idx-1)/pR)
-        local cd=CardFrame(m,cw,ch); cd:SetPoint("TOPLEFT",m,"TOPLEFT",mg+col*(cw+gX),-gridTop-row*(ch+gY))
+        local cd=CardFrame(m,cs,cs); cd:SetPoint("TOPLEFT",m,"TOPLEFT",gridLeft+col*(cs+gX),-gridTop-row*(cs+gY))
         if md.img then local img=cd:CreateTexture(nil,"BACKGROUND"); img:SetTexture(ADDON_IMG_PATH..md.img)
             img:SetAllPoints(); img:SetTexCoord(0,1,0,1); img:SetAlpha(0.85) end
         cd.starsL=TD.Lbl(cd,20,1,1,1); cd.starsL:SetPoint("BOTTOM",0,10)
