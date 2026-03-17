@@ -34,16 +34,12 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
     local ti=TD.Lbl(m,28,0.85,0.7,0.35); ti:SetPoint("TOP",0,-10); ti:SetText("Tower Defense")
     local su=TD.Lbl(m,14,0.7,0.6,0.45); su:SetPoint("TOP",0,-42); su:SetText("Choose your battlefield")
     local cards={}; local pR=4; local mg=8; local gX=10; local gY=10; local iW=FW-32; local iH=FH-32
-    local numRows=math.ceil(#TD.MAPS/pR); local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR); local ch=math.floor((iH-68-40-(numRows-1)*gY-mg)/numRows)
+    local numRows=math.ceil(#TD.MAPS/pR); local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR); local ch=cw
+    local gridH=numRows*ch+(numRows-1)*gY; local gridTop=math.floor((iH-68-40-gridH)/2)+60
     for idx,md in ipairs(TD.MAPS) do local col=(idx-1)%pR; local row=math.floor((idx-1)/pR)
-        local cd=CardFrame(m,cw,ch); cd:SetPoint("TOPLEFT",m,"TOPLEFT",mg+col*(cw+gX),-60-row*(ch+gY))
+        local cd=CardFrame(m,cw,ch); cd:SetPoint("TOPLEFT",m,"TOPLEFT",mg+col*(cw+gX),-gridTop-row*(ch+gY))
         if md.img then local img=cd:CreateTexture(nil,"BACKGROUND"); img:SetTexture(ADDON_IMG_PATH..md.img)
             img:SetAllPoints(); img:SetTexCoord(0,1,0,1); img:SetAlpha(0.85) end
-        local accent=TD.Tex(cd,"ARTWORK",md.theme.ground[1]*1.8,md.theme.ground[2]*1.8,md.theme.ground[3]*1.8,0.5); accent:SetHeight(4); accent:SetPoint("TOPLEFT",5,-5); accent:SetPoint("TOPRIGHT",-5,-5)
-        local dl=TD.Lbl(cd,13,md.diffColor[1],md.diffColor[2],md.diffColor[3]); dl:SetPoint("TOP",0,-14); dl:SetText(md.difficulty.." - "..md.totalWaves.."w")
-        local fl=TD.Lbl(cd,11,0.85,0.55,0.2); fl:SetPoint("TOP",0,-32); fl:SetWidth(cw-16); fl:SetText(md.flavor or "")
-        if md.boss and TD.BOSS_DEFS[md.boss] then local bl=TD.Lbl(cd,11,0.8,0.4,0.8); bl:SetPoint("TOP",0,-48); bl:SetText("Boss: "..TD.BOSS_DEFS[md.boss].name) end
-        cd.progL=TD.Lbl(cd,14,0.8,0.7,0.45); cd.progL:SetPoint("BOTTOM",0,32)
         cd.starsL=TD.Lbl(cd,20,1,1,1); cd.starsL:SetPoint("BOTTOM",0,10)
         cd:SetScript("OnEnter",function(self) self:SetBackdropBorderColor(1,0.85,0.4,1); GameTooltip:SetOwner(self,"ANCHOR_RIGHT")
             GameTooltip:AddLine(md.name,0.9,0.8,0.5); GameTooltip:AddLine(md.difficulty.." - "..md.totalWaves.." waves",md.diffColor[1],md.diffColor[2],md.diffColor[3])
@@ -68,7 +64,6 @@ function TD.RefreshMenu() if not TD.ui.mapCards then return end
             if md.unlockReq then local rp=TD.GetMapProgress(md.unlockReq); unlocked=rp.completed
             else for _,m in ipairs(TD.MAPS) do if not m.secret then local mp=TD.GetMapProgress(m.id); if not mp.completed then unlocked=false; break end end end end
             if unlocked then cd:Show() else cd:Hide() end end
-        if p.completed then cd.progL:SetText("|cff33cc33DONE|r") elseif p.bestWave>0 then cd.progL:SetText("W"..p.bestWave.."/"..md.totalWaves) else cd.progL:SetText("--") end
         cd.starsL:SetText(Stars(p.stars or 0)) end end
 
 -- ============================================================
