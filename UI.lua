@@ -71,7 +71,7 @@ function TD.RefreshMenu() if not TD.ui.mapCards then return end
 -- ============================================================
 function TD.CreateEquip() if TD.frames.equipFrame then return end
     local ef=CreateFrame("Frame",nil,TD.frames.main); ef:SetPoint("TOPLEFT",14,-14); ef:SetPoint("BOTTOMRIGHT",-14,14); ef:Hide(); TD.frames.equipFrame=ef
-    local iW=FW-220; local pad=math.floor((FW-28-iW)/2)
+    local iW=580; local pad=math.floor((FW-28-iW)/2)
     local eqT=TD.Lbl(ef,22,0.85,0.7,0.35); eqT:SetPoint("TOP",0,-8); eqT:SetText("Loadout")
     local eqS=TD.Lbl(ef,12,0.7,0.6,0.45); eqS:SetPoint("TOP",0,-30); eqS:SetText("Equip 3 items and choose specializations")
     local slots={}; local slotGap=8; local slotW=math.floor((iW-slotGap*2)/3)
