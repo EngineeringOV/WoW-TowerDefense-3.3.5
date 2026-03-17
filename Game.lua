@@ -124,6 +124,7 @@ function TD.GetPaladinBuff(tower)
         if spec.aura and t~=tower then
             local ar=TD.TS(spec,"range",t.tier)
             if st.rangeMult then ar=ar*st.rangeMult end
+            if st.auraRangeMult then ar=ar*st.auraRangeMult end
             -- Apply boon on the PALADIN's tile to its aura range
             local palBoon=TD.currentBoonGrid[t.col..","..t.row]
             if palBoon then local bd=TD.BOON_DEFS[palBoon]; if bd.rngMult then ar=ar*bd.rngMult end end
@@ -171,6 +172,7 @@ function TD.DamageEnemy(en,damage,tower,isSplash)
     if st.speedDmgMult and st.speedThreshold and en.baseSpeed>=st.speedThreshold then damage=math.floor(damage*st.speedDmgMult) end
     if st.dmgPerLifeLost and TD.game.tracking.livesLost>0 then damage=math.floor(damage*(1+st.dmgPerLifeLost*TD.game.tracking.livesLost)) end
     if st.critChance and math.random()<st.critChance then damage=math.floor(damage*(st.critMult or 1.5)); TD.FlashEnemy(en,1,1,0.3) end
+    if st.doubleHitChance and math.random()<st.doubleHitChance then damage=damage*2; TD.FlashEnemy(en,0.4,0.8,1) end
     en.hp=en.hp-damage; if en.isBoss then TD.BossOnHit(en) end
     if en.hp<=0 then en.alive=false; en.frame:Hide()
         local rw=en.reward; if st.goldMult then rw=math.floor(rw*st.goldMult) end

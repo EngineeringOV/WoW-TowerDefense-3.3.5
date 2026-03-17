@@ -95,6 +95,15 @@ TD.ITEM_DEFS={
     icecrowntabard={name="Icecrown Tabard",desc="+1 life per wave clear",color={0.6,0.7,0.9},icon="I",apply=function(s) s.waveLifeRegen=(s.waveLifeRegen or 0)+1 end},
     warglaiveshard={name="Warglaive Shard",desc="+30% dmg to fast foes",color={0.2,0.8,0.2},icon="G",apply=function(s) s.speedDmgMult=1.30; s.speedThreshold=90 end},
     illidanseye={name="Illidan's Eye",desc="+10% dmg, boss gold 2x",color={0.3,0.7,0.1},icon="E",apply=function(s) s.dmgMult=(s.dmgMult or 1)*1.10; s.bossGoldMult=2.0 end},
+    -- Challenge tier 3 items (stat niches + unique)
+    rangersbow={name="Ranger's Longbow",desc="+10% range",color={0.3,0.7,0.3},icon=">",apply=function(s) s.rangeMult=(s.rangeMult or 1)*1.10 end},
+    merchantpurse={name="Merchant's Purse",desc="+25 starting gold",color={1,0.85,0.3},icon="P",apply=function(s) s.bonusGold=(s.bonusGold or 0)+25 end},
+    wintergrasp={name="Wintergrasp Ice",desc="+25% slow duration",color={0.5,0.8,1},icon="{",apply=function(s) s.slowDurMult=(s.slowDurMult or 1)*1.25 end},
+    plaguevial={name="Plague Vial",desc="+30% DoT damage",color={0.5,0.8,0.2},icon="V",apply=function(s) s.dotMult=(s.dotMult or 1)*1.30 end},
+    lightbringer={name="Light of the Naaru",desc="Aura range +20%",color={1,0.95,0.6},icon="L",apply=function(s) s.auraRangeMult=(s.auraRangeMult or 1)*1.20 end},
+    stormhammer={name="Stormforged Hammer",desc="+12% splash radius",color={0.4,0.5,0.9},icon="H",apply=function(s) s.splashMult=(s.splashMult or 1)*1.12 end},
+    trollbane={name="Trollbane's Edge",desc="+10% attack speed",color={0.7,0.4,0.2},icon="T",apply=function(s) s.cdMult=(s.cdMult or 1)*0.90 end},
+    nethershard={name="Netherstorm Shard",desc="10% double-hit chance",color={0.6,0.3,0.9},icon="N",apply=function(s) s.doubleHitChance=(s.doubleHitChance or 0)+0.10 end},
 }
 
 -- Item set bonuses (equip 2 from a set for bonus)
@@ -115,7 +124,8 @@ function TD.GetItemSet(itemId)
     end; return nil end
 TD.ITEM_ORDER={"spyglass","coinpurse","barricade","arcanedust","frostshard","moltenfrag","soulsiphon","lichecho","ashbringer","thunderfury","phylactery",
     "hoggersclaw","goldshiremedal","durnholdesignet","hillsbradtrophy","moonwellwater","satyrhorn","darkironband","lavacoreshard",
-    "karazhankey","ghostlantern","dragonscale","wyrmtooth","frostmourneshard","icecrowntabard","warglaiveshard","illidanseye"}
+    "karazhankey","ghostlantern","dragonscale","wyrmtooth","frostmourneshard","icecrowntabard","warglaiveshard","illidanseye",
+    "rangersbow","merchantpurse","wintergrasp","plaguevial","lightbringer","stormhammer","trollbane","nethershard"}
 
 function TD.GetEquippedStats() TD.EnsureSaved(); local st={}
     for _,id in ipairs(TowerDefenseSaved.equipped) do local d=TD.ITEM_DEFS[id]; if d then d.apply(st) end end
@@ -144,7 +154,7 @@ TD.CHALLENGE_DEFS={
     minimalist={name="Minimalist",desc="6 or fewer towers",check=function(t) return t.maxTowers<=6 end},
     nosell={name="No Sell",desc="Never sell a tower",check=function(t) return t.sellCount==0 end},
     speedrun={name="Speed Run",desc="Never pause",check=function(t) return t.neverPaused end},
-    pauper={name="Pauper",desc="Spend 300g or less",check=function(t) return t.goldSpent<=300 end},
+    pauper={name="Pauper",desc="Spend 400g or less",check=function(t) return t.goldSpent<=400 end},
     endurance={name="Endurance",desc="No lives lost past W15",check=function(t) return t.latelivesLost==0 end},
 }
 
