@@ -4,6 +4,7 @@ local DIALOGBG="Interface\\DialogFrame\\UI-DialogBox-Background"
 local GOLDBDR="Interface\\DialogFrame\\UI-DialogBox-Gold-Border"
 local TOOLTIPBDR="Interface\\Tooltips\\UI-Tooltip-Border"
 local HIGHLIGHT="Interface\\QuestFrame\\UI-QuestLogTitleHighlight"
+local ADDON_IMG_PATH="Interface\\AddOns\\TowerDefense\\"
 local C=TD.CELL; local COLS,ROWS=TD.COLS,TD.ROWS; local MW,MH=COLS*C,ROWS*C; local PW=TD.PANEL_W
 local PT=TD.PAD_TOP; local PB=TD.PAD_BOT; local FW=MW+PW+8; local FH=MH+PT+PB+8
 local function Stars(n) local s=""; for i=1,3 do s=s..(i<=n and "|cffffd700*|r" or "|cff555555*|r") end; return s end
@@ -37,10 +38,13 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
     for idx,md in ipairs(TD.MAPS) do local col=(idx-1)%pR; local row=math.floor((idx-1)/pR)
         local cd=CardFrame(m,cw,ch); cd:SetPoint("TOPLEFT",m,"TOPLEFT",mg+col*(cw+gX),-60-row*(ch+gY))
         local accent=TD.Tex(cd,"ARTWORK",md.theme.ground[1]*1.8,md.theme.ground[2]*1.8,md.theme.ground[3]*1.8,0.5); accent:SetHeight(4); accent:SetPoint("TOPLEFT",5,-5); accent:SetPoint("TOPRIGHT",-5,-5)
-        local nl=TD.Lbl(cd,16,0.85,0.7,0.4); nl:SetPoint("TOP",0,-14); nl:SetWidth(cw-16); nl:SetText(md.name)
-        local dl=TD.Lbl(cd,13,md.diffColor[1],md.diffColor[2],md.diffColor[3]); dl:SetPoint("TOP",0,-34); dl:SetText(md.difficulty.." - "..md.totalWaves.."w")
-        local fl=TD.Lbl(cd,11,0.85,0.55,0.2); fl:SetPoint("TOP",0,-52); fl:SetWidth(cw-16); fl:SetText(md.flavor or "")
-        if md.boss and TD.BOSS_DEFS[md.boss] then local bl=TD.Lbl(cd,11,0.8,0.4,0.8); bl:SetPoint("TOP",0,-68); bl:SetText("Boss: "..TD.BOSS_DEFS[md.boss].name) end
+        if md.img then local imgH=math.floor(ch*0.35); local img=cd:CreateTexture(nil,"ARTWORK"); img:SetTexture(ADDON_IMG_PATH..md.img)
+            img:SetSize(cw-10,imgH); img:SetPoint("TOP",0,-10); img:SetTexCoord(0,1,0,1) end
+        local yOff=md.img and math.floor(ch*0.35)+12 or 14
+        local nl=TD.Lbl(cd,16,0.85,0.7,0.4); nl:SetPoint("TOP",0,-yOff); nl:SetWidth(cw-16); nl:SetText(md.name)
+        local dl=TD.Lbl(cd,13,md.diffColor[1],md.diffColor[2],md.diffColor[3]); dl:SetPoint("TOP",0,-(yOff+20)); dl:SetText(md.difficulty.." - "..md.totalWaves.."w")
+        local fl=TD.Lbl(cd,11,0.85,0.55,0.2); fl:SetPoint("TOP",0,-(yOff+38)); fl:SetWidth(cw-16); fl:SetText(md.flavor or "")
+        if md.boss and TD.BOSS_DEFS[md.boss] then local bl=TD.Lbl(cd,11,0.8,0.4,0.8); bl:SetPoint("TOP",0,-(yOff+54)); bl:SetText("Boss: "..TD.BOSS_DEFS[md.boss].name) end
         cd.progL=TD.Lbl(cd,14,0.8,0.7,0.45); cd.progL:SetPoint("BOTTOM",0,32)
         cd.starsL=TD.Lbl(cd,20,1,1,1); cd.starsL:SetPoint("BOTTOM",0,10)
         cd:SetScript("OnEnter",function(self) self:SetBackdropBorderColor(1,0.85,0.4,1); GameTooltip:SetOwner(self,"ANCHOR_RIGHT")
