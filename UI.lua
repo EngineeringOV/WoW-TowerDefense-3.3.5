@@ -33,13 +33,18 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
     local m=CreateFrame("Frame",nil,TD.frames.main); m:SetPoint("TOPLEFT",14,-14); m:SetPoint("BOTTOMRIGHT",-14,14); m:Hide(); TD.frames.menuFrame=m
     local ti=TD.Lbl(m,28,0.85,0.7,0.35); ti:SetPoint("TOP",0,-10); ti:SetText("Tower Defense")
     local su=TD.Lbl(m,14,0.7,0.6,0.45); su:SetPoint("TOP",0,-42); su:SetText("Choose your battlefield")
-    local cards={}; local pR=4; local mg=8; local gX=10; local gY=10; local iW=FW-32; local iH=FH-32
-    local numRows=math.ceil(#TD.MAPS/pR); local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR)
-    local maxCh=math.floor((iH-68-40-(numRows-1)*gY)/numRows); local cs=math.min(cw,maxCh)
+    local cards={}; local pR=3; local mg=8; local gX=12; local gY=12; local iW=FW-32; local iH=FH-32
+    local cs=math.floor((iW-mg*2-(pR-1)*gX)/pR)
+    -- Scrollable card area
+    local menuTop=60; local menuBot=40
+    local menuScroll=CreateFrame("ScrollFrame",nil,m); menuScroll:SetPoint("TOPLEFT",m,"TOPLEFT",0,-menuTop); menuScroll:SetPoint("BOTTOMRIGHT",m,"BOTTOMRIGHT",0,menuBot)
+    local menuChild=CreateFrame("Frame",nil,menuScroll); menuScroll:SetScrollChild(menuChild); menuChild:SetWidth(iW)
+    local numRows=math.ceil(#TD.MAPS/pR)
     local gridW=pR*cs+(pR-1)*gX; local gridLeft=math.floor((iW-gridW)/2)
-    local gridH=numRows*cs+(numRows-1)*gY; local gridTop=math.floor((iH-68-40-gridH)/2)+60
+    local totalH=numRows*cs+(numRows-1)*gY+mg
+    menuChild:SetHeight(totalH)
     for idx,md in ipairs(TD.MAPS) do local col=(idx-1)%pR; local row=math.floor((idx-1)/pR)
-        local cd=CardFrame(m,cs,cs); cd:SetPoint("TOPLEFT",m,"TOPLEFT",gridLeft+col*(cs+gX),-gridTop-row*(cs+gY))
+        local cd=CardFrame(menuChild,cs,cs); cd:SetPoint("TOPLEFT",menuChild,"TOPLEFT",gridLeft+col*(cs+gX),-row*(cs+gY))
         if md.img then local img=cd:CreateTexture(nil,"BACKGROUND"); img:SetTexture(ADDON_IMG_PATH..md.img)
             img:SetAllPoints(); img:SetTexCoord(0,1,0,1); img:SetAlpha(0.85) end
         cd.starsL=TD.Lbl(cd,20,1,1,1); cd.starsL:SetPoint("BOTTOM",0,10)
@@ -55,18 +60,38 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
         cd:SetScript("OnLeave",function(self) self:SetBackdropBorderColor(0.5,0.45,0.35,1); GameTooltip:Hide() end)
         cd:SetScript("OnClick",function() TD.game.pendingMapIndex=idx; TD.ShowEquip() end); cards[idx]=cd
     end; TD.ui.mapCards=cards
+    -- Menu scroll bar
+    local visH=iH-menuTop-menuBot
+    local menuBar=CreateFrame("Slider",nil,menuScroll); menuBar:SetWidth(8); menuBar:SetPoint("TOPRIGHT",menuScroll,"TOPRIGHT",10,0); menuBar:SetPoint("BOTTOMRIGHT",menuScroll,"BOTTOMRIGHT",10,0)
+    menuBar:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=8,tile=true,tileSize=16,insets={left=1,right=1,top=1,bottom=1}})
+    menuBar:SetBackdropColor(0.1,0.1,0.1,0.6); menuBar:SetBackdropBorderColor(0.3,0.3,0.3,0.5)
+    local mThumb=menuBar:CreateTexture(nil,"OVERLAY"); mThumb:SetTexture(HIGHLIGHT); mThumb:SetSize(6,30); mThumb:SetVertexColor(0.6,0.55,0.45,0.8)
+    menuBar:SetThumbTexture(mThumb); menuBar:SetOrientation("VERTICAL")
+    if totalH>visH then menuBar:SetMinMaxValues(0,totalH-visH); menuBar:Show() else menuBar:SetMinMaxValues(0,0); menuBar:Hide() end
+    menuBar:SetValue(0); menuBar:SetScript("OnValueChanged",function(self,val) menuScroll:SetVerticalScroll(val) end)
+    menuScroll:EnableMouseWheel(true); menuScroll:SetScript("OnMouseWheel",function(self,delta) local cur=menuBar:GetValue(); if delta>0 then menuBar:SetValue(math.max(0,cur-60)) else local _,mx=menuBar:GetMinMaxValues(); menuBar:SetValue(math.min(mx,cur+60)) end end)
+    TD.ui.menuScroll=menuScroll; TD.ui.menuBar=menuBar; TD.ui.menuChild=menuChild; TD.ui.menuCardSize=cs; TD.ui.menuGridLeft=gridLeft; TD.ui.menuPR=pR; TD.ui.menuGX=gX; TD.ui.menuGY=gY; TD.ui.menuVisH=visH
     local leg=TD.Lbl(m,12,0.7,0.6,0.45); leg:SetPoint("BOTTOMLEFT",m,"BOTTOMLEFT",8,8); leg:SetText("Hover cards for details")
     local eb=CreateFrame("Button",nil,m,"UIPanelButtonTemplate"); eb:SetSize(140,28); eb:SetPoint("BOTTOMRIGHT",m,"BOTTOMRIGHT",-8,8)
     eb:SetText("Equipment"); eb:SetScript("OnClick",function() TD.game.pendingMapIndex=nil; TD.ShowEquip() end) end
 
 function TD.RefreshMenu() if not TD.ui.mapCards then return end
+    -- Collect visible maps and reposition
+    local vis={}
     for idx,cd in ipairs(TD.ui.mapCards) do local md=TD.MAPS[idx]; local p=TD.GetMapProgress(md.id)
-        -- Secret maps: hide until unlock condition met
+        local show=true
         if md.secret then local unlocked=true
             if md.unlockReq then local rp=TD.GetMapProgress(md.unlockReq); unlocked=rp.completed
             else for _,m in ipairs(TD.MAPS) do if not m.secret then local mp=TD.GetMapProgress(m.id); if not mp.completed then unlocked=false; break end end end end
-            if unlocked then cd:Show() else cd:Hide() end end
-        cd.starsL:SetText(Stars(p.stars or 0)) end end
+            show=unlocked end
+        if show then cd:Show(); vis[#vis+1]={cd=cd,p=p} else cd:Hide() end end
+    local pR=TD.ui.menuPR; local cs=TD.ui.menuCardSize; local gX=TD.ui.menuGX; local gY=TD.ui.menuGY; local gridLeft=TD.ui.menuGridLeft
+    for i,v in ipairs(vis) do local col=(i-1)%pR; local row=math.floor((i-1)/pR)
+        v.cd:ClearAllPoints(); v.cd:SetPoint("TOPLEFT",TD.ui.menuChild,"TOPLEFT",gridLeft+col*(cs+gX),-row*(cs+gY))
+        v.cd.starsL:SetText(Stars(v.p.stars or 0)) end
+    local numRows=math.ceil(#vis/pR); local totalH=numRows*cs+(numRows-1)*gY+8
+    TD.ui.menuChild:SetHeight(totalH)
+    if totalH>TD.ui.menuVisH then TD.ui.menuBar:SetMinMaxValues(0,totalH-TD.ui.menuVisH); TD.ui.menuBar:Show() else TD.ui.menuBar:SetMinMaxValues(0,0); TD.ui.menuBar:Hide() end end
 
 -- ============================================================
 -- EQUIP (fixed widths, taller containers)
@@ -106,15 +131,15 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
     TD.ui.eqScrollBar=scrollBar; TD.ui.eqScrollFrame=scrollFrame; TD.ui.eqScrollChild=scrollChild
     -- Items header
     local invT=TD.Lbl(scrollChild,12,0.7,0.6,0.45); invT:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,0); invT:SetText("Items (click to select, then click a slot)")
-    TD.ui.itemBtns={}; local icols=4; local bw=math.floor((scrollW-(icols-1)*6)/icols); local bh=48
+    TD.ui.itemBtns={}; local icols=4; local bw=math.floor((scrollW-(icols-1)*6)/icols); local bh=56
     for i,itemId in ipairs(TD.ITEM_ORDER) do local ib=CreateFrame("Button",nil,scrollChild); local col=(i-1)%icols; local row=math.floor((i-1)/icols)
         ib:SetSize(bw,bh); ib:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",2+col*(bw+6),-18-row*(bh+4))
         ib:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
         ib:SetBackdropColor(0.15,0.12,0.1,0.9); ib:SetBackdropBorderColor(0.4,0.35,0.25,0.8)
-        local d=TD.ITEM_DEFS[itemId]; local ic=TD.Lbl(ib,16,d.color[1],d.color[2],d.color[3]); ic:SetPoint("TOPLEFT",5,-3); ic:SetText(d.icon)
-        ib.nameL=TD.Lbl(ib,10,0.9,0.85,0.7); ib.nameL:SetPoint("TOPLEFT",22,-3); ib.nameL:SetWidth(bw-28); ib.nameL:SetJustifyH("LEFT"); ib.nameL:SetText(d.name)
-        local dl=TD.Lbl(ib,9,0.8,0.7,0.55); dl:SetPoint("TOPLEFT",5,-18); dl:SetWidth(bw-10); dl:SetJustifyH("LEFT"); dl:SetText(d.desc)
-        ib.statL=TD.Lbl(ib,9,0.75,0.65,0.5); ib.statL:SetPoint("BOTTOM",0,3); ib.itemId=itemId
+        local d=TD.ITEM_DEFS[itemId]; local ic=TD.Lbl(ib,18,d.color[1],d.color[2],d.color[3]); ic:SetPoint("TOPLEFT",5,-4); ic:SetText(d.icon)
+        ib.nameL=TD.Lbl(ib,13,0.9,0.85,0.7); ib.nameL:SetPoint("TOPLEFT",24,-4); ib.nameL:SetWidth(bw-30); ib.nameL:SetJustifyH("LEFT"); ib.nameL:SetText(d.name)
+        local dl=TD.Lbl(ib,11,0.8,0.7,0.55); dl:SetPoint("TOPLEFT",5,-22); dl:SetWidth(bw-10); dl:SetJustifyH("LEFT"); dl:SetText(d.desc)
+        ib.statL=TD.Lbl(ib,11,0.75,0.65,0.5); ib.statL:SetPoint("BOTTOM",0,4); ib.itemId=itemId
         ib:SetScript("OnClick",function() if TD.HasItem(itemId) then TD.equipSelItem=itemId; TD.RefreshEquip() end end)
         -- Tooltip with set bonus info
         ib:SetScript("OnEnter",function(self)
