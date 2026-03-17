@@ -4,6 +4,7 @@ local DIALOGBG="Interface\\DialogFrame\\UI-DialogBox-Background"
 local GOLDBDR="Interface\\DialogFrame\\UI-DialogBox-Gold-Border"
 local TOOLTIPBDR="Interface\\Tooltips\\UI-Tooltip-Border"
 local HIGHLIGHT="Interface\\QuestFrame\\UI-QuestLogTitleHighlight"
+local ADDON_IMG_PATH="Interface\\AddOns\\TowerDefense\\"
 local C=TD.CELL; local COLS,ROWS=TD.COLS,TD.ROWS; local MW,MH=COLS*C,ROWS*C; local PW=TD.PANEL_W
 local PT=TD.PAD_TOP; local PB=TD.PAD_BOT; local FW=MW+PW+8; local FH=MH+PT+PB+8
 local function Stars(n) local s=""; for i=1,3 do s=s..(i<=n and "|cffffd700*|r" or "|cff555555*|r") end; return s end
@@ -33,14 +34,17 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
     local ti=TD.Lbl(m,28,0.85,0.7,0.35); ti:SetPoint("TOP",0,-10); ti:SetText("Tower Defense")
     local su=TD.Lbl(m,14,0.7,0.6,0.45); su:SetPoint("TOP",0,-42); su:SetText("Choose your battlefield")
     local cards={}; local pR=4; local mg=8; local gX=10; local gY=10; local iW=FW-32; local iH=FH-32
-    local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR); local ch=math.floor((iH-68-40-gY-mg)/2)
+    local numRows=math.ceil(#TD.MAPS/pR); local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR); local ch=math.floor((iH-68-40-(numRows-1)*gY-mg)/numRows)
     for idx,md in ipairs(TD.MAPS) do local col=(idx-1)%pR; local row=math.floor((idx-1)/pR)
         local cd=CardFrame(m,cw,ch); cd:SetPoint("TOPLEFT",m,"TOPLEFT",mg+col*(cw+gX),-60-row*(ch+gY))
         local accent=TD.Tex(cd,"ARTWORK",md.theme.ground[1]*1.8,md.theme.ground[2]*1.8,md.theme.ground[3]*1.8,0.5); accent:SetHeight(4); accent:SetPoint("TOPLEFT",5,-5); accent:SetPoint("TOPRIGHT",-5,-5)
-        local nl=TD.Lbl(cd,16,0.85,0.7,0.4); nl:SetPoint("TOP",0,-14); nl:SetWidth(cw-16); nl:SetText(md.name)
-        local dl=TD.Lbl(cd,13,md.diffColor[1],md.diffColor[2],md.diffColor[3]); dl:SetPoint("TOP",0,-34); dl:SetText(md.difficulty.." - "..md.totalWaves.."w")
-        local fl=TD.Lbl(cd,11,0.85,0.55,0.2); fl:SetPoint("TOP",0,-52); fl:SetWidth(cw-16); fl:SetText(md.flavor or "")
-        if md.boss and TD.BOSS_DEFS[md.boss] then local bl=TD.Lbl(cd,11,0.8,0.4,0.8); bl:SetPoint("TOP",0,-68); bl:SetText("Boss: "..TD.BOSS_DEFS[md.boss].name) end
+        if md.img then local imgH=math.floor(ch*0.35); local img=cd:CreateTexture(nil,"ARTWORK"); img:SetTexture(ADDON_IMG_PATH..md.img)
+            img:SetSize(cw-10,imgH); img:SetPoint("TOP",0,-10); img:SetTexCoord(0,1,0,1) end
+        local yOff=md.img and math.floor(ch*0.35)+12 or 14
+        local nl=TD.Lbl(cd,16,0.85,0.7,0.4); nl:SetPoint("TOP",0,-yOff); nl:SetWidth(cw-16); nl:SetText(md.name)
+        local dl=TD.Lbl(cd,13,md.diffColor[1],md.diffColor[2],md.diffColor[3]); dl:SetPoint("TOP",0,-(yOff+20)); dl:SetText(md.difficulty.." - "..md.totalWaves.."w")
+        local fl=TD.Lbl(cd,11,0.85,0.55,0.2); fl:SetPoint("TOP",0,-(yOff+38)); fl:SetWidth(cw-16); fl:SetText(md.flavor or "")
+        if md.boss and TD.BOSS_DEFS[md.boss] then local bl=TD.Lbl(cd,11,0.8,0.4,0.8); bl:SetPoint("TOP",0,-(yOff+54)); bl:SetText("Boss: "..TD.BOSS_DEFS[md.boss].name) end
         cd.progL=TD.Lbl(cd,14,0.8,0.7,0.45); cd.progL:SetPoint("BOTTOM",0,32)
         cd.starsL=TD.Lbl(cd,20,1,1,1); cd.starsL:SetPoint("BOTTOM",0,10)
         cd:SetScript("OnEnter",function(self) self:SetBackdropBorderColor(1,0.85,0.4,1); GameTooltip:SetOwner(self,"ANCHOR_RIGHT")
@@ -61,6 +65,11 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
 
 function TD.RefreshMenu() if not TD.ui.mapCards then return end
     for idx,cd in ipairs(TD.ui.mapCards) do local md=TD.MAPS[idx]; local p=TD.GetMapProgress(md.id)
+        -- Secret maps: hide until unlock condition met
+        if md.secret then local unlocked=true
+            if md.unlockReq then local rp=TD.GetMapProgress(md.unlockReq); unlocked=rp.completed
+            else for _,m in ipairs(TD.MAPS) do if not m.secret then local mp=TD.GetMapProgress(m.id); if not mp.completed then unlocked=false; break end end end end
+            if unlocked then cd:Show() else cd:Hide() end end
         if p.completed then cd.progL:SetText("|cff33cc33DONE|r") elseif p.bestWave>0 then cd.progL:SetText("W"..p.bestWave.."/"..md.totalWaves) else cd.progL:SetText("--") end
         cd.starsL:SetText(Stars(p.stars or 0)) end end
 
@@ -69,40 +78,78 @@ function TD.RefreshMenu() if not TD.ui.mapCards then return end
 -- ============================================================
 function TD.CreateEquip() if TD.frames.equipFrame then return end
     local ef=CreateFrame("Frame",nil,TD.frames.main); ef:SetPoint("TOPLEFT",14,-14); ef:SetPoint("BOTTOMRIGHT",-14,14); ef:Hide(); TD.frames.equipFrame=ef
-    local iW=FW-80
+    local iW=FW-220; local pad=math.floor((FW-28-iW)/2)
     local eqT=TD.Lbl(ef,22,0.85,0.7,0.35); eqT:SetPoint("TOP",0,-8); eqT:SetText("Loadout")
     local eqS=TD.Lbl(ef,12,0.7,0.6,0.45); eqS:SetPoint("TOP",0,-30); eqS:SetText("Equip 3 items and choose specializations")
-    local slots={}; local slotW=math.floor(iW/3)
+    local slots={}; local slotGap=8; local slotW=math.floor((iW-slotGap*2)/3)
     for s=1,3 do local sf=CreateFrame("Button",nil,ef); sf:SetSize(slotW,56)
-        sf:SetPoint("TOPLEFT",ef,"TOPLEFT",30+(s-1)*(slotW+8),-48)
+        sf:SetPoint("TOPLEFT",ef,"TOPLEFT",pad+(s-1)*(slotW+slotGap),-48)
         sf:SetBackdrop({bgFile=PARCHMENT2,edgeFile=TOOLTIPBDR,edgeSize=14,tile=false,insets={left=3,right=3,top=3,bottom=3}})
         sf:SetBackdropColor(0.6,0.55,0.45,0.95); sf:SetBackdropBorderColor(0.55,0.45,0.3,1)
         local slab=TD.Lbl(sf,10,0.75,0.65,0.5); slab:SetPoint("TOPLEFT",8,-4); slab:SetText("Slot "..s)
         sf.itemL=TD.Lbl(sf,13,0.8,0.65,0.35); sf.itemL:SetPoint("CENTER",0,0); sf.itemL:SetWidth(slotW-20); sf.itemL:SetJustifyH("CENTER")
         sf.descL=TD.Lbl(sf,10,0.75,0.65,0.5); sf.descL:SetPoint("BOTTOM",0,6); sf.descL:SetWidth(slotW-20); sf.descL:SetJustifyH("CENTER")
         sf:SetScript("OnClick",function() if TD.equipSelItem then TD.SetEquipped(s,TD.equipSelItem); TD.equipSelItem=nil; TD.RefreshEquip() end end); slots[s]=sf end; TD.ui.eqSlots=slots
-    local invT=TD.Lbl(ef,12,0.7,0.6,0.45); invT:SetPoint("TOPLEFT",ef,"TOPLEFT",32,-112); invT:SetText("Items (click to select, then click a slot)")
-    TD.ui.itemBtns={}; local icols=4; local bw=math.floor((iW-(icols-1)*6)/icols); local bh=48
-    for i,itemId in ipairs(TD.ITEM_ORDER) do local ib=CreateFrame("Button",nil,ef); local col=(i-1)%icols; local row=math.floor((i-1)/icols)
-        ib:SetSize(bw,bh); ib:SetPoint("TOPLEFT",ef,"TOPLEFT",30+col*(bw+6),-130-row*(bh+4))
+    -- Set bonus display (between slots and scroll)
+    TD.ui.setBonusL=TD.Lbl(ef,11,0.6,0.8,0.4); TD.ui.setBonusL:SetPoint("TOP",0,-108); TD.ui.setBonusL:SetWidth(iW)
+    -- Scrollable area for items + specs
+    local scrollTop=124; local scrollBot=42
+    local scrollFrame=CreateFrame("ScrollFrame",nil,ef); scrollFrame:SetPoint("TOPLEFT",ef,"TOPLEFT",pad,-scrollTop); scrollFrame:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-pad,scrollBot)
+    local scrollChild=CreateFrame("Frame",nil,scrollFrame); scrollFrame:SetScrollChild(scrollChild)
+    local scrollW=iW
+    scrollChild:SetWidth(scrollW)
+    -- Scroll bar
+    local scrollBar=CreateFrame("Slider",nil,scrollFrame); scrollBar:SetWidth(14); scrollBar:SetPoint("TOPRIGHT",scrollFrame,"TOPRIGHT",16,0); scrollBar:SetPoint("BOTTOMRIGHT",scrollFrame,"BOTTOMRIGHT",16,0)
+    scrollBar:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=10,tile=true,tileSize=16,insets={left=2,right=2,top=2,bottom=2}})
+    scrollBar:SetBackdropColor(0.1,0.1,0.1,0.6); scrollBar:SetBackdropBorderColor(0.3,0.3,0.3,0.5)
+    scrollBar:SetThumbTexture(HIGHLIGHT); scrollBar:SetOrientation("VERTICAL")
+    scrollBar:SetMinMaxValues(0,1); scrollBar:SetValue(0)
+    scrollBar:SetScript("OnValueChanged",function(self,val) scrollFrame:SetVerticalScroll(val) end)
+    scrollFrame:EnableMouseWheel(true)
+    scrollFrame:SetScript("OnMouseWheelUp",function(self) local cur=scrollBar:GetValue(); scrollBar:SetValue(math.max(0,cur-40)) end)
+    scrollFrame:SetScript("OnMouseWheelDown",function(self) local _,mx=scrollBar:GetMinMaxValues(); local cur=scrollBar:GetValue(); scrollBar:SetValue(math.min(mx,cur+40)) end)
+    TD.ui.eqScrollBar=scrollBar; TD.ui.eqScrollFrame=scrollFrame; TD.ui.eqScrollChild=scrollChild
+    -- Items header
+    local invT=TD.Lbl(scrollChild,12,0.7,0.6,0.45); invT:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,0); invT:SetText("Items (click to select, then click a slot)")
+    TD.ui.itemBtns={}; local icols=4; local bw=math.floor((scrollW-(icols-1)*6)/icols); local bh=48
+    for i,itemId in ipairs(TD.ITEM_ORDER) do local ib=CreateFrame("Button",nil,scrollChild); local col=(i-1)%icols; local row=math.floor((i-1)/icols)
+        ib:SetSize(bw,bh); ib:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",2+col*(bw+6),-18-row*(bh+4))
         ib:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
         ib:SetBackdropColor(0.15,0.12,0.1,0.9); ib:SetBackdropBorderColor(0.4,0.35,0.25,0.8)
         local d=TD.ITEM_DEFS[itemId]; local ic=TD.Lbl(ib,16,d.color[1],d.color[2],d.color[3]); ic:SetPoint("TOPLEFT",5,-3); ic:SetText(d.icon)
         ib.nameL=TD.Lbl(ib,10,0.9,0.85,0.7); ib.nameL:SetPoint("TOPLEFT",22,-3); ib.nameL:SetWidth(bw-28); ib.nameL:SetJustifyH("LEFT"); ib.nameL:SetText(d.name)
         local dl=TD.Lbl(ib,9,0.8,0.7,0.55); dl:SetPoint("TOPLEFT",5,-18); dl:SetWidth(bw-10); dl:SetJustifyH("LEFT"); dl:SetText(d.desc)
         ib.statL=TD.Lbl(ib,9,0.75,0.65,0.5); ib.statL:SetPoint("BOTTOM",0,3); ib.itemId=itemId
-        ib:SetScript("OnClick",function() if TD.HasItem(itemId) then TD.equipSelItem=itemId; TD.RefreshEquip() end end); TD.ui.itemBtns[i]=ib end
-    local specY=-130-math.ceil(#TD.ITEM_ORDER/icols)*(bh+4)-10
-    local spT=TD.Lbl(ef,12,0.7,0.6,0.45); spT:SetPoint("TOPLEFT",ef,"TOPLEFT",32,specY); spT:SetText("Tower Specializations")
-    TD.ui.specBtns={}; local sBW=math.floor((iW-70)/2); local sBH=38; local sGap=4; local sSY=specY-18
+        ib:SetScript("OnClick",function() if TD.HasItem(itemId) then TD.equipSelItem=itemId; TD.RefreshEquip() end end)
+        -- Tooltip with set bonus info
+        ib:SetScript("OnEnter",function(self)
+            GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:AddLine(d.name,d.color[1],d.color[2],d.color[3]); GameTooltip:AddLine(d.desc,0.9,0.85,0.75)
+            local setInfo=TD.GetItemSet(itemId)
+            if setInfo then GameTooltip:AddLine(" "); GameTooltip:AddLine(setInfo.name.." (2 Set)",setInfo.color[1],setInfo.color[2],setInfo.color[3])
+                for _,sid in ipairs(setInfo.items) do local sd=TD.ITEM_DEFS[sid]; local eq=TD.IsEquipped(sid)
+                    if eq then GameTooltip:AddLine("  "..sd.name,0.3,1,0.3) else GameTooltip:AddLine("  "..sd.name,0.5,0.5,0.5) end end
+                local bothEq=true; for _,sid in ipairs(setInfo.items) do if not TD.IsEquipped(sid) then bothEq=false end end
+                if bothEq then GameTooltip:AddLine("(2) "..setInfo.desc,0.3,1,0.3) else GameTooltip:AddLine("(2) "..setInfo.desc,0.5,0.5,0.5) end
+            end; GameTooltip:Show() end)
+        ib:SetScript("OnLeave",function() GameTooltip:Hide() end)
+        TD.ui.itemBtns[i]=ib end
+    local itemRows=math.ceil(#TD.ITEM_ORDER/icols)
+    local specY=-18-itemRows*(bh+4)-10
+    -- Tower Specializations header
+    local spT=TD.Lbl(scrollChild,12,0.7,0.6,0.45); spT:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,specY); spT:SetText("Tower Specializations")
+    TD.ui.specBtns={}; local sBW=math.floor((scrollW-80)/2); local sBH=42; local sGap=4; local sSY=specY-20
+    local iconSz=sBH-10
     for fi,fam in ipairs(TD.FAMILIES) do
-        local famL=TD.Lbl(ef,12,fam.color[1],fam.color[2],fam.color[3]); famL:SetPoint("TOPLEFT",ef,"TOPLEFT",32,sSY-(fi-1)*(sBH+sGap)); famL:SetText(fam.name..":")
-        for si,specId in ipairs(fam.specs) do local spec=TD.SPECS[specId]; local sb=CreateFrame("Button",nil,ef); sb:SetSize(sBW,sBH)
-            sb:SetPoint("TOPLEFT",ef,"TOPLEFT",100+(si-1)*(sBW+8),sSY-(fi-1)*(sBH+sGap))
+        local famL=TD.Lbl(scrollChild,12,fam.color[1],fam.color[2],fam.color[3]); famL:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,sSY-(fi-1)*(sBH+sGap)); famL:SetText(fam.name..":")
+        for si,specId in ipairs(fam.specs) do local spec=TD.SPECS[specId]; local sb=CreateFrame("Button",nil,scrollChild); sb:SetSize(sBW,sBH)
+            sb:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",72+(si-1)*(sBW+8),sSY-(fi-1)*(sBH+sGap))
             sb:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
             sb:SetBackdropColor(spec.color[1]*0.2,spec.color[2]*0.2,spec.color[3]*0.2,0.9); sb:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8)
-            sb.nameL=TD.Lbl(sb,12,0.9,0.85,0.7); sb.nameL:SetPoint("LEFT",8,5); sb.nameL:SetText(spec.letter.." "..spec.name)
-            local sdl=TD.Lbl(sb,9,0.8,0.7,0.55); sdl:SetPoint("BOTTOMLEFT",8,4); sdl:SetWidth(sBW-16); sdl:SetJustifyH("LEFT"); sdl:SetText(spec.desc)
+            -- Class icon
+            local icon=sb:CreateTexture(nil,"ARTWORK"); icon:SetSize(iconSz,iconSz); icon:SetPoint("LEFT",4,0); icon:SetTexture(TD.CLASS_ICON)
+            local coords=TD.CLASS_COORDS[spec.family] or TD.CLASS_COORDS.paladin; icon:SetTexCoord(coords[1],coords[2],coords[3],coords[4])
+            sb.nameL=TD.Lbl(sb,12,0.9,0.85,0.7); sb.nameL:SetPoint("TOPLEFT",iconSz+8,-4); sb.nameL:SetText(spec.letter.." "..spec.name)
+            local sdl=TD.Lbl(sb,9,0.8,0.7,0.55); sdl:SetPoint("BOTTOMLEFT",iconSz+8,4); sdl:SetWidth(sBW-iconSz-16); sdl:SetJustifyH("LEFT"); sdl:SetText(spec.desc)
             sb.statL=TD.Lbl(sb,10,0.75,0.65,0.5); sb.statL:SetPoint("RIGHT",-8,5); sb.specId=specId; sb.famId=fam.id
             sb:SetScript("OnClick",function() if TD.IsSpecUnlocked(specId) then TowerDefenseSaved.specs[fam.id]=specId; TD.RefreshEquip() end end)
             sb:SetScript("OnEnter",function(self) GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:AddLine(spec.name,spec.color[1],spec.color[2],spec.color[3]); GameTooltip:AddLine(spec.desc,0.9,0.85,0.75)
@@ -116,10 +163,20 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
                 if not TD.IsSpecUnlocked(specId) then GameTooltip:AddLine("|cffff4444LOCKED - complete challenges|r") end; GameTooltip:Show() end)
             sb:SetScript("OnLeave",function() GameTooltip:Hide() end); TD.ui.specBtns[specId]=sb end end
     local palY=sSY-#TD.FAMILIES*(sBH+sGap); local ps=TD.SPECS.paladin
-    local palL=TD.Lbl(ef,12,0.9,0.8,0.3); palL:SetPoint("TOPLEFT",ef,"TOPLEFT",32,palY); palL:SetText("Support: "..ps.letter.." "..ps.name.." (hover specs for all tier stats)")
-    local back=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); back:SetSize(130,28); back:SetPoint("BOTTOMLEFT",ef,"BOTTOMLEFT",30,8)
+    -- Paladin support row with class icon
+    local palRow=CreateFrame("Frame",nil,scrollChild); palRow:SetSize(scrollW,20); palRow:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,palY)
+    local palIcon=palRow:CreateTexture(nil,"ARTWORK"); palIcon:SetSize(18,18); palIcon:SetPoint("LEFT",0,0); palIcon:SetTexture(TD.CLASS_ICON)
+    local palCoords=TD.CLASS_COORDS.paladin; palIcon:SetTexCoord(palCoords[1],palCoords[2],palCoords[3],palCoords[4])
+    local palL=TD.Lbl(palRow,12,0.9,0.8,0.3); palL:SetPoint("LEFT",22,0); palL:SetText("Support: "..ps.letter.." "..ps.name.." (hover specs for all tier stats)")
+    -- Calculate total content height and set scroll child size
+    local totalH=math.abs(palY)+24
+    scrollChild:SetHeight(totalH)
+    local visH=FH-28-scrollTop-scrollBot
+    if totalH>visH then scrollBar:SetMinMaxValues(0,totalH-visH); scrollBar:Show() else scrollBar:SetMinMaxValues(0,0); scrollBar:Hide() end
+    -- Bottom buttons (fixed, not scrolling)
+    local back=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); back:SetSize(130,28); back:SetPoint("BOTTOMLEFT",ef,"BOTTOMLEFT",pad,8)
     back:SetText("Back"); back:SetScript("OnClick",function() TD.equipSelItem=nil; TD.ShowMenu() end)
-    TD.ui.eqPlayBtn=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); TD.ui.eqPlayBtn:SetSize(160,32); TD.ui.eqPlayBtn:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-30,8)
+    TD.ui.eqPlayBtn=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); TD.ui.eqPlayBtn:SetSize(160,32); TD.ui.eqPlayBtn:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-pad,8)
     TD.ui.eqPlayBtn:SetText("Start Battle"); TD.ui.eqPlayBtn:SetScript("OnClick",function()
         if TD.game.pendingMapIndex then TD.equipSelItem=nil; TD.StartMap(TD.game.pendingMapIndex) end end) end
 
@@ -136,7 +193,12 @@ function TD.RefreshEquip() TD.EnsureSaved()
         if not u then sb:SetBackdropColor(0.06,0.05,0.04,0.9); sb:SetBackdropBorderColor(0.15,0.12,0.1,0.5); sb.nameL:SetTextColor(0.45,0.4,0.3); sb.statL:SetText("|cff888866Locked|r")
         elseif sel then sb:SetBackdropBorderColor(1,0.85,0.3,1); sb:SetBackdropColor(spec.color[1]*0.3,spec.color[2]*0.3,spec.color[3]*0.3,0.9); sb.nameL:SetTextColor(1,0.95,0.8); sb.statL:SetText("|cff44aa44Active|r")
         else sb:SetBackdropBorderColor(spec.color[1]*0.5,spec.color[2]*0.5,spec.color[3]*0.5,0.6); sb:SetBackdropColor(spec.color[1]*0.12,spec.color[2]*0.12,spec.color[3]*0.12,0.9); sb.nameL:SetTextColor(0.7,0.65,0.5); sb.statL:SetText("") end end
-    if TD.game.pendingMapIndex then TD.ui.eqPlayBtn:SetText("Start Battle"); TD.ui.eqPlayBtn:Enable() else TD.ui.eqPlayBtn:SetText("(pick a map)"); TD.ui.eqPlayBtn:Disable() end end
+    if TD.game.pendingMapIndex then TD.ui.eqPlayBtn:SetText("Start Battle"); TD.ui.eqPlayBtn:Enable() else TD.ui.eqPlayBtn:SetText("(pick a map)"); TD.ui.eqPlayBtn:Disable() end
+    -- Show active set bonuses
+    local st=TD.GetEquippedStats(); local setTxt=""
+    if st.activeSets and #st.activeSets>0 then for _,set in ipairs(st.activeSets) do
+        if setTxt~="" then setTxt=setTxt.."  " end; setTxt=setTxt.."|cff"..HexC(set.color)..set.name.."|r: "..set.desc end end
+    TD.ui.setBonusL:SetText(setTxt) end
 
 function TD.ShowEquip() TD.frames.menuFrame:Hide(); if TD.frames.gameFrame then TD.frames.gameFrame:Hide() end; TD.CreateEquip(); TD.RefreshEquip(); TD.frames.equipFrame:Show(); TD.game.state=TD.S_EQUIP end
 
@@ -244,7 +306,8 @@ function TD.ShowUpgrade(tower)
     -- Show paladin buff if any
     local pD,pS,pR=TD.GetPaladinBuff(tower); if pD>0 or pS>0 then info=info.."\n|cffffff88Paladin: +"..(math.floor(pD*100)).."%dmg +"..(math.floor(pS*100)).."%spd|r" end
     uf.infoL:SetText(info)
-    if t<3 then local cost=spec.upgradeCost[t+1]; uf.upBtn:SetText("T"..(t+1).." ("..cost.."g)"); uf.upBtn:Show()
+    if t<3 then local cost=spec.upgradeCost[t+1]; if st.upgradeCostMult then cost=math.floor(cost*st.upgradeCostMult) end
+        uf.upBtn:SetText("T"..(t+1).." ("..cost.."g)"); uf.upBtn:Show()
         uf.upBtn:SetScript("OnClick",function() if TD.game.gold>=cost then TD.game.gold=TD.game.gold-cost; TD.game.tracking.goldSpent=TD.game.tracking.goldSpent+cost
             tower.tier=t+1; tower.cooldownTimer=0; tower.frame.tierL:SetText("T"..tower.tier); TD.ShowUpgrade(tower); TD.UpdateHUD() end end)
         uf:SetHeight(135) else uf.upBtn:Hide(); uf:SetHeight(110) end
@@ -252,7 +315,8 @@ function TD.ShowUpgrade(tower)
     uf:ClearAllPoints(); uf:SetPoint("BOTTOM",tower.frame,"TOP",0,8); uf:Show(); TD.activeTowerPanel=tower end
 
 function TD.HideUpgrade() if TD.frames.upgradeFrame then TD.frames.upgradeFrame:Hide() end; TD.activeTowerPanel=nil end
-function TD.SellValue(tower) local spec=TD.game.activeSpecs[tower.specIdx]; local total=spec.baseCost; for t=2,tower.tier do total=total+(spec.upgradeCost[t] or 0) end; return math.floor(total*0.5) end
+function TD.SellValue(tower) local spec=TD.game.activeSpecs[tower.specIdx]; local total=spec.baseCost; for t=2,tower.tier do total=total+(spec.upgradeCost[t] or 0) end
+    local pct=0.5; local st=TD.game.equippedStats; if st and st.sellMult then pct=st.sellMult end; return math.floor(total*pct) end
 function TD.SellTower(tower) TD.game.gold=TD.game.gold+TD.SellValue(tower); TD.game.tracking.sellCount=TD.game.tracking.sellCount+1; tower.frame:Hide()
     for i,t in ipairs(TD.game.towers) do if t==tower then table.remove(TD.game.towers,i); break end end; TD.UpdateHUD() end
 
