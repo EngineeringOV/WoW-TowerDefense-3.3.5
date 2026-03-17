@@ -43,7 +43,7 @@ TD.MAPS={
         blocked={{5,3},{6,3},{7,3},{10,2},{11,2},{10,3},{11,3},{14,2},{15,2},{1,6},{1,7},{2,6},{2,7},{8,7},{9,7},{8,8},{14,6},{15,6},{1,10},{2,10},{8,11},{9,11},{10,11},{18,10},{19,10},{20,10}},
         boons={{4,1,"power"},{12,4,"haste"},{10,9,"range"},{18,6,"power"},{5,12,"haste"}},triggerTiles={},
     },
-    {id="deadwind",name="Deadwind Pass",img="DP small",difficulty="Hard",diffColor={1,0.3,0.2},totalWaves=28,startGold=110,startLives=16,
+    {id="deadwind",name="Deadwind Pass",difficulty="Hard",diffColor={1,0.3,0.2},totalWaves=28,startGold=110,startLives=16,
         desc="Road to Karazhan. Ghost surges through ruins.",rewardItem="lichecho",hpMult=1.1,speedMult=1.05,spawnMult=0.9,scalePower=2.1,
         enemyBias={healer=2,scout=1},burstWaves={3,7,11,15,19,23,27},flavor="Frequent bursts, phantom boss",boss="nightbane",bossWaves={14,28},
         challenges={{id="dead_1",type="minimalist",reward={item="karazhankey",spec="arcane"},rewardText="Karazhan Key + Arcanist"},
