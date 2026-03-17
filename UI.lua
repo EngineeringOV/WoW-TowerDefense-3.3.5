@@ -61,6 +61,10 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
 
 function TD.RefreshMenu() if not TD.ui.mapCards then return end
     for idx,cd in ipairs(TD.ui.mapCards) do local md=TD.MAPS[idx]; local p=TD.GetMapProgress(md.id)
+        -- Secret maps: hide until all non-secret maps completed
+        if md.secret then local allDone=true
+            for _,m in ipairs(TD.MAPS) do if not m.secret then local mp=TD.GetMapProgress(m.id); if not mp.completed then allDone=false; break end end end
+            if allDone then cd:Show() else cd:Hide() end end
         if p.completed then cd.progL:SetText("|cff33cc33DONE|r") elseif p.bestWave>0 then cd.progL:SetText("W"..p.bestWave.."/"..md.totalWaves) else cd.progL:SetText("--") end
         cd.starsL:SetText(Stars(p.stars or 0)) end end
 

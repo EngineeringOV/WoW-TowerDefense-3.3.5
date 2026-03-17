@@ -25,10 +25,10 @@ function TD.StartWave()
         TD.CheckChallenges(g.currentMap,g.tracking); TD.UpdateHUD(); return end
     local wi=g.waveList[g.wave]; wipe(g.spawnQueue); g.waveImmunity=wi.immunity
     for _,tn in ipairs(wi.enemies) do g.spawnQueue[#g.spawnQueue+1]={typeName=tn,hpScale=wi.hpScale,immunity=wi.immunity} end
-    if wi.spawnMapBoss and g.currentMap.boss then g.spawnQueue[#g.spawnQueue+1]={typeName="_mapboss",hpScale=wi.hpScale,immunity=nil,bossId=g.currentMap.boss} end
+    if wi.spawnMapBoss then local bId=wi.bossId or g.currentMap.boss; if bId then g.spawnQueue[#g.spawnQueue+1]={typeName="_mapboss",hpScale=wi.hpScale,immunity=nil,bossId=bId} end end
     g.spawnTimer=0; g.state=TD.S_PLAY; g.sellMode=false; TD.UpdateHUD()
     local tag=wi.gimmickTag and (" - "..wi.gimmickTag) or ""; local burst=wi.isBurst and " |cffff8800[BURST]|r" or ""
-    local bossTag=""; if wi.spawnMapBoss and g.currentMap.boss then bossTag=" |cffff00ff["..TD.BOSS_DEFS[g.currentMap.boss].name.."]|r" end
+    local bossTag=""; if wi.spawnMapBoss then local bId=wi.bossId or g.currentMap.boss; if bId and TD.BOSS_DEFS[bId] then bossTag=" |cffff00ff["..TD.BOSS_DEFS[bId].name.."]|r" end end
     DEFAULT_CHAT_FRAME:AddMessage(string.format("|cff00ccff[TD]|r W%d/%d (%d)%s%s%s",g.wave,g.totalWaves,#g.spawnQueue,tag,burst,bossTag))
 end
 
@@ -94,7 +94,9 @@ function TD.UpdateBossAbilities(en,elapsed)
             if ab.action=="enrage" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.enraged=true; en.dmgReduce=ab.dmgReduce or 0; en.frame.body:SetVertexColor(1,0.3,0.1,1)
                 DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cffff4444ENRAGED!|r")
             elseif ab.action=="metamorph" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.metamorphed=true; en.regenPct=ab.regenPct; en.immunity="noslow"; en.frame.body:SetVertexColor(0.1,0.9,0.1,1)
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cff00ff00METAMORPHOSIS!|r") end end
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cff00ff00METAMORPHOSIS!|r")
+            elseif ab.action=="rewind" then en.hp=math.floor(en.maxHP*(ab.healPct or 0.5)); en.frame.body:SetVertexColor(0.9,0.8,0.2,1)
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cffffd700REWINDS TIME!|r HP restored to "..math.floor((ab.healPct or 0.5)*100).."%!") end end
         if ab.trigger=="periodic" then ab.timer=(ab.timer or 0)+elapsed
             if ab.action=="shield" and ab.timer>=ab.interval then ab.timer=0; ab.currentCharges=ab.charges; en.shieldCharges=ab.charges end
             if ab.action=="vanish" then if en.vanished then ab.vanishTimer=(ab.vanishTimer or 0)+elapsed

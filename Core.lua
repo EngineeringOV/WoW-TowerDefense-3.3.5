@@ -55,6 +55,14 @@ TD.BOSS_DEFS={
     sartharion={name="Sartharion's Brood",hp=1500,speed=28,reward=50,size=38,color={0.5,0.1,0.1},desc="Spawns 3 brutes at trigger tiles. Slow immune.",abilities={{trigger="onTile",action="spawnAdds",addType="brute",addCount=3,addHpMult=0.5},{trigger="onSpawn",action="immunity",immType="noslow"}}},
     marrowgar={name="Lord Marrowgar",hp=1800,speed=26,reward=55,size=38,color={0.7,0.75,0.8},desc="Bone Storm every 8s: all enemies +80% speed 2s.",abilities={{trigger="onSpawn",action="immunity",immType="noslow"},{trigger="periodic",interval=8.0,action="bonestorm",spdBuff=1.8,dur=2.0,timer=0}}},
     illidan={name="Illidan's Shade",hp=2200,speed=24,reward=65,size=42,color={0.2,0.6,0.1},desc="Metamorphosis at 30%: regens, slow immune, faster.",abilities={{trigger="onHpPct",pct=0.3,action="metamorph",spdMult=1.4,regenPct=0.02,done=false}}},
+    murozond={name="Murozond",hp=3200,speed=22,reward=100,size=44,color={0.8,0.7,0.2},desc="Lord of the Infinite. Rewinds time at 30% HP. Periodic shields + time storms.",
+        abilities={
+            {trigger="onSpawn",action="immunity",immType="noslow"},
+            {trigger="periodic",interval=12.0,action="bonestorm",spdBuff=2.0,dur=3.0,timer=0},
+            {trigger="periodic",interval=8.0,action="shield",charges=4,timer=0,currentCharges=4},
+            {trigger="onHpPct",pct=0.30,action="rewind",healPct=0.60,done=false},
+            {trigger="onTile",action="spawnAdds",addType="runner",addCount=5,addHpMult=0.8},
+        }},
 }
 
 TD.BOON_DEFS={
@@ -104,6 +112,11 @@ TD.ITEM_DEFS={
     stormhammer={name="Stormforged Hammer",desc="+12% splash radius",color={0.4,0.5,0.9},icon="H",apply=function(s) s.splashMult=(s.splashMult or 1)*1.12 end},
     trollbane={name="Trollbane's Edge",desc="+10% attack speed",color={0.7,0.4,0.2},icon="T",apply=function(s) s.cdMult=(s.cdMult or 1)*0.90 end},
     nethershard={name="Netherstorm Shard",desc="10% double-hit chance",color={0.6,0.3,0.9},icon="N",apply=function(s) s.doubleHitChance=(s.doubleHitChance or 0)+0.10 end},
+    -- Caverns of Time rewards
+    chronoshard={name="Chrono-Shard",desc="+5% dmg, rng, speed",color={0.8,0.7,0.2},icon="@",apply=function(s) s.dmgMult=(s.dmgMult or 1)*1.05; s.rangeMult=(s.rangeMult or 1)*1.05; s.cdMult=(s.cdMult or 1)*0.95 end},
+    infinityorb={name="Orb of the Infinite",desc="+15% all tower damage",color={0.9,0.8,0.4},icon="0",apply=function(s) s.dmgMult=(s.dmgMult or 1)*1.15 end},
+    timelordsigil={name="Timelord's Sigil",desc="+5g/wave, +10 start gold",color={0.7,0.6,0.9},icon="+",apply=function(s) s.waveGoldBonus=(s.waveGoldBonus or 0)+5; s.bonusGold=(s.bonusGold or 0)+10 end},
+    epochstone={name="Epoch Stone",desc="+8% crit, +5% double-hit",color={0.5,0.4,0.7},icon="=",apply=function(s) s.critChance=(s.critChance or 0)+0.08; s.doubleHitChance=(s.doubleHitChance or 0)+0.05 end},
 }
 
 -- Item set bonuses (equip 2 from a set for bonus)
@@ -125,7 +138,8 @@ function TD.GetItemSet(itemId)
 TD.ITEM_ORDER={"spyglass","coinpurse","barricade","arcanedust","frostshard","moltenfrag","soulsiphon","lichecho","ashbringer","thunderfury","phylactery",
     "hoggersclaw","goldshiremedal","durnholdesignet","hillsbradtrophy","moonwellwater","satyrhorn","darkironband","lavacoreshard",
     "karazhankey","ghostlantern","dragonscale","wyrmtooth","frostmourneshard","icecrowntabard","warglaiveshard","illidanseye",
-    "rangersbow","merchantpurse","wintergrasp","plaguevial","lightbringer","stormhammer","trollbane","nethershard"}
+    "rangersbow","merchantpurse","wintergrasp","plaguevial","lightbringer","stormhammer","trollbane","nethershard",
+    "chronoshard","infinityorb","timelordsigil","epochstone"}
 
 function TD.GetEquippedStats() TD.EnsureSaved(); local st={}
     for _,id in ipairs(TowerDefenseSaved.equipped) do local d=TD.ITEM_DEFS[id]; if d then d.apply(st) end end

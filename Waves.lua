@@ -39,7 +39,12 @@ function TD.GenerateWaves(totalWaves,mapDef)
             local pick=((w+seed)%#GIMMICKS)+1; local gim=GIMMICKS[pick]; if w>=gim.min then enemies=gim.build(w,baseCount); gimmickTag=gim.tag; immunity=gim.immunity end end
         if not enemies then enemies=BuildStd(w,bias) end; if pct>0.75 then hpScale=hpScale*(1+(pct-0.75)*4.0) end
         waves[w]={enemies=enemies,hpScale=hpScale,gimmickTag=gimmickTag,isBurst=isBurst,immunity=immunity,spawnMapBoss=spawnMapBoss}
-    end; return waves end
+    end
+    -- Boss gauntlet: assign different bosses per boss wave
+    if mapDef and mapDef.bossSequence then local bi=1
+        for w=1,totalWaves do if waves[w].spawnMapBoss then
+            waves[w].bossId=mapDef.bossSequence[bi]; bi=math.min(bi+1,#mapDef.bossSequence) end end end
+    return waves end
 
 function TD.WaveSummary(info) local counts={}; for _,t in ipairs(info.enemies) do counts[t]=(counts[t] or 0)+1 end
     local parts={}; for _,t in ipairs({"swarm","scout","runner","healer","brute","boss"}) do if counts[t] then parts[#parts+1]=counts[t]..TD.ENEMY_DEFS[t].icon end end; return table.concat(parts," ") end

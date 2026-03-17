@@ -87,6 +87,22 @@ TD.MAPS={
         blocked={{10,1},{11,1},{10,2},{11,2},{5,7},{6,7},{5,8},{12,5},{13,5},{12,6},{13,6},{16,4},{17,4},{16,5},{12,9},{12,10},{18,9},{19,9},{18,10},{19,10},{3,12},{4,12},{3,13},{4,13}},
         boons={{3,1,"power"},{7,5,"haste"},{9,9,"range"},{14,7,"power"},{16,12,"haste"},{11,3,"range"},{2,7,"power"}},triggerTiles={{8,9},{14,3}},
     },
+    -- Secret boss gauntlet map - unlocked by completing all 8 maps
+    {id="cavernstime",name="Caverns of Time",difficulty="Legendary",diffColor={1,0.85,0},totalWaves=50,startGold=200,startLives=10,
+        desc="The Infinite Dragonflight corrupts the timeways. Face every boss.",rewardItem="chronoshard",hpMult=1.4,speedMult=1.15,spawnMult=0.6,scalePower=2.8,
+        enemyBias={boss=1,brute=2,healer=2,scout=2,swarm=3},burstWaves={5,10,15,20,25,30,35,40,45,50},
+        flavor="Boss Gauntlet - All bosses return",secret=true,
+        boss="murozond",bossWaves={10,20,30,40,50},
+        bossSequence={"hogger","flamelash","sartharion","marrowgar","murozond"},
+        challenges={{id="cot_1",type="flawless",reward={item="infinityorb"},rewardText="Orb of the Infinite"},
+                    {id="cot_2",type="speedrun",reward={item="timelordsigil"},rewardText="Timelord's Sigil"},
+                    {id="cot_3",type="endurance",reward={item="epochstone"},rewardText="Epoch Stone"}},
+        waypoints={{1,1},{10,1},{10,4},{3,4},{3,7},{12,7},{12,10},{1,10},{1,12},{16,12},{16,8},{20,8},{20,4},{14,4},{14,1},{20,1}},
+        theme={ground={0.15,0.10,0.22},path={0.35,0.28,0.42},blocked={0.30,0.25,0.50},bChar="@",bName="Time Rift"},
+        blocked={{5,2},{6,2},{5,3},{8,5},{8,6},{9,5},{14,2},{15,2},{15,3},{2,5},{2,6},{6,9},{7,9},{6,10},{14,11},{15,11},{17,10},{18,10},{18,5},{19,5},{19,6},{11,5},{11,6},{4,11},{5,11}},
+        boons={{3,1,"power"},{8,4,"haste"},{6,7,"range"},{10,10,"power"},{15,12,"haste"},{18,8,"range"},{13,4,"power"},{17,1,"haste"},{1,7,"range"},{9,1,"power"}},
+        triggerTiles={{3,7},{12,10},{14,1}},
+    },
 }
 
 function TD.BuildPath(md) local pC,pP,pG={},{},{}; local wp=md.waypoints
