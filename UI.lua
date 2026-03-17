@@ -34,7 +34,8 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
     local ti=TD.Lbl(m,28,0.85,0.7,0.35); ti:SetPoint("TOP",0,-10); ti:SetText("Tower Defense")
     local su=TD.Lbl(m,14,0.7,0.6,0.45); su:SetPoint("TOP",0,-42); su:SetText("Choose your battlefield")
     local cards={}; local pR=4; local mg=8; local gX=10; local gY=10; local iW=FW-32; local iH=FH-32
-    local numRows=math.ceil(#TD.MAPS/pR); local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR); local ch=cw
+    local numRows=math.ceil(#TD.MAPS/pR); local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR)
+    local maxCh=math.floor((iH-68-40-(numRows-1)*gY)/numRows); local ch=math.min(cw,maxCh)
     local gridH=numRows*ch+(numRows-1)*gY; local gridTop=math.floor((iH-68-40-gridH)/2)+60
     for idx,md in ipairs(TD.MAPS) do local col=(idx-1)%pR; local row=math.floor((idx-1)/pR)
         local cd=CardFrame(m,cw,ch); cd:SetPoint("TOPLEFT",m,"TOPLEFT",mg+col*(cw+gX),-gridTop-row*(ch+gY))
@@ -71,7 +72,7 @@ function TD.RefreshMenu() if not TD.ui.mapCards then return end
 -- ============================================================
 function TD.CreateEquip() if TD.frames.equipFrame then return end
     local ef=CreateFrame("Frame",nil,TD.frames.main); ef:SetPoint("TOPLEFT",14,-14); ef:SetPoint("BOTTOMRIGHT",-14,14); ef:Hide(); TD.frames.equipFrame=ef
-    local iW=580; local pad=math.floor((FW-28-iW)/2)
+    local iW=FW-220; local pad=math.floor((FW-28-iW)/2)
     local eqT=TD.Lbl(ef,22,0.85,0.7,0.35); eqT:SetPoint("TOP",0,-8); eqT:SetText("Loadout")
     local eqS=TD.Lbl(ef,12,0.7,0.6,0.45); eqS:SetPoint("TOP",0,-30); eqS:SetText("Equip 3 items and choose specializations")
     local slots={}; local slotGap=8; local slotW=math.floor((iW-slotGap*2)/3)
@@ -95,7 +96,8 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
     local scrollBar=CreateFrame("Slider",nil,scrollFrame); scrollBar:SetWidth(8); scrollBar:SetPoint("TOPRIGHT",scrollFrame,"TOPRIGHT",10,0); scrollBar:SetPoint("BOTTOMRIGHT",scrollFrame,"BOTTOMRIGHT",10,0)
     scrollBar:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=8,tile=true,tileSize=16,insets={left=1,right=1,top=1,bottom=1}})
     scrollBar:SetBackdropColor(0.1,0.1,0.1,0.6); scrollBar:SetBackdropBorderColor(0.3,0.3,0.3,0.5)
-    scrollBar:SetThumbTexture(HIGHLIGHT); scrollBar:SetOrientation("VERTICAL")
+    local thumb=scrollBar:CreateTexture(nil,"OVERLAY"); thumb:SetTexture(HIGHLIGHT); thumb:SetSize(6,30); thumb:SetVertexColor(0.6,0.55,0.45,0.8)
+    scrollBar:SetThumbTexture(thumb); scrollBar:SetOrientation("VERTICAL")
     scrollBar:SetMinMaxValues(0,1); scrollBar:SetValue(0)
     scrollBar:SetScript("OnValueChanged",function(self,val) scrollFrame:SetVerticalScroll(val) end)
     scrollFrame:EnableMouseWheel(true)
