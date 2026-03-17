@@ -33,7 +33,7 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
     local ti=TD.Lbl(m,28,0.85,0.7,0.35); ti:SetPoint("TOP",0,-10); ti:SetText("Tower Defense")
     local su=TD.Lbl(m,14,0.7,0.6,0.45); su:SetPoint("TOP",0,-42); su:SetText("Choose your battlefield")
     local cards={}; local pR=4; local mg=8; local gX=10; local gY=10; local iW=FW-32; local iH=FH-32
-    local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR); local ch=math.floor((iH-68-40-gY-mg)/2)
+    local numRows=math.ceil(#TD.MAPS/pR); local cw=math.floor((iW-mg*2-(pR-1)*gX)/pR); local ch=math.floor((iH-68-40-(numRows-1)*gY-mg)/numRows)
     for idx,md in ipairs(TD.MAPS) do local col=(idx-1)%pR; local row=math.floor((idx-1)/pR)
         local cd=CardFrame(m,cw,ch); cd:SetPoint("TOPLEFT",m,"TOPLEFT",mg+col*(cw+gX),-60-row*(ch+gY))
         local accent=TD.Tex(cd,"ARTWORK",md.theme.ground[1]*1.8,md.theme.ground[2]*1.8,md.theme.ground[3]*1.8,0.5); accent:SetHeight(4); accent:SetPoint("TOPLEFT",5,-5); accent:SetPoint("TOPRIGHT",-5,-5)
@@ -61,10 +61,11 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
 
 function TD.RefreshMenu() if not TD.ui.mapCards then return end
     for idx,cd in ipairs(TD.ui.mapCards) do local md=TD.MAPS[idx]; local p=TD.GetMapProgress(md.id)
-        -- Secret maps: hide until all non-secret maps completed
-        if md.secret then local allDone=true
-            for _,m in ipairs(TD.MAPS) do if not m.secret then local mp=TD.GetMapProgress(m.id); if not mp.completed then allDone=false; break end end end
-            if allDone then cd:Show() else cd:Hide() end end
+        -- Secret maps: hide until unlock condition met
+        if md.secret then local unlocked=true
+            if md.unlockReq then local rp=TD.GetMapProgress(md.unlockReq); unlocked=rp.completed
+            else for _,m in ipairs(TD.MAPS) do if not m.secret then local mp=TD.GetMapProgress(m.id); if not mp.completed then unlocked=false; break end end end end
+            if unlocked then cd:Show() else cd:Hide() end end
         if p.completed then cd.progL:SetText("|cff33cc33DONE|r") elseif p.bestWave>0 then cd.progL:SetText("W"..p.bestWave.."/"..md.totalWaves) else cd.progL:SetText("--") end
         cd.starsL:SetText(Stars(p.stars or 0)) end end
 

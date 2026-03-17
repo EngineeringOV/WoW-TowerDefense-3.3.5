@@ -103,6 +103,23 @@ TD.MAPS={
         boons={{3,1,"power"},{8,4,"haste"},{6,7,"range"},{10,10,"power"},{15,12,"haste"},{18,8,"range"},{13,4,"power"},{17,1,"haste"},{1,7,"range"},{9,1,"power"}},
         triggerTiles={{3,7},{12,10},{14,1}},
     },
+    -- Secret naga map - unlocked by completing Caverns of Time
+    {id="azshara",name="Depths of Azshara",difficulty="Mythic",diffColor={0.4,0.2,0.9},totalWaves=60,startGold=175,startLives=8,
+        desc="Queen Azshara awaits in the deep. Naga ambush from below. Survive the abyss.",rewardItem="tidalscepter",hpMult=1.5,speedMult=1.2,spawnMult=0.55,scalePower=3.0,
+        enemyBias={scout=3,healer=3,boss=2,swarm=4},burstWaves={6,12,18,24,30,36,42,48,54,60},
+        flavor="Naga Ambush - Enemies flank from mid-path",secret=true,unlockReq="cavernstime",
+        boss="azshara",bossWaves={12,24,36,48,60},
+        bossSequence={"tethyr","nightbane","redpath","illidan","azshara"},
+        ambushWaypointIdx=8,ambushWaves={3,7,11,15,19,23,27,31,35,39,43,47,51,55,59},
+        challenges={{id="azs_1",type="flawless",reward={item="abyssalcore"},rewardText="Abyssal Core"},
+                    {id="azs_2",type="speedrun",reward={item="depthcharger"},rewardText="Depth Charge"},
+                    {id="azs_3",type="endurance",reward={item="azsharastiara"},rewardText="Azshara's Tiara"}},
+        waypoints={{1,1},{8,1},{8,4},{1,4},{1,7},{10,7},{10,10},{3,10},{3,12},{14,12},{14,9},{20,9},{20,6},{12,6},{12,3},{20,3},{20,1}},
+        theme={ground={0.08,0.12,0.20},path={0.15,0.25,0.40},blocked={0.10,0.18,0.35},bChar="~",bName="Coral Reef"},
+        blocked={{4,2},{5,2},{4,3},{6,5},{6,6},{7,5},{11,8},{11,9},{12,8},{15,10},{16,10},{16,11},{17,7},{18,7},{18,8},{14,4},{15,4},{15,5},{8,11},{9,11},{2,9},{2,10},{5,7},{5,8}},
+        boons={{2,1,"power"},{6,4,"haste"},{4,7,"range"},{8,10,"power"},{12,12,"haste"},{18,9,"range"},{16,6,"power"},{14,3,"haste"},{19,1,"range"},{1,4,"power"},{10,1,"haste"},{7,7,"range"}},
+        triggerTiles={{1,7},{14,9},{20,3}},
+    },
 }
 
 function TD.BuildPath(md) local pC,pP,pG={},{},{}; local wp=md.waypoints

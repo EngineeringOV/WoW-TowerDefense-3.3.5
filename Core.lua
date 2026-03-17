@@ -63,6 +63,15 @@ TD.BOSS_DEFS={
             {trigger="onHpPct",pct=0.30,action="rewind",healPct=0.60,done=false},
             {trigger="onTile",action="spawnAdds",addType="runner",addCount=5,addHpMult=0.8},
         }},
+    azshara={name="Queen Azshara",hp=4200,speed=20,reward=120,size=46,color={0.3,0.2,0.7},desc="Empress of Nazjatar. Tidal shields, rewinds at 20% HP, summons naga reinforcements.",
+        abilities={
+            {trigger="onSpawn",action="immunity",immType="noslow"},
+            {trigger="periodic",interval=8.0,action="shield",charges=5,timer=0,currentCharges=5},
+            {trigger="periodic",interval=14.0,action="bonestorm",spdBuff=1.6,dur=2.5,timer=0},
+            {trigger="onHpPct",pct=0.50,action="enrage",spdMult=1.3,dmgReduce=0.30,done=false},
+            {trigger="onHpPct",pct=0.20,action="rewind",healPct=0.55,done=false},
+            {trigger="onTile",action="spawnAdds",addType="scout",addCount=6,addHpMult=0.7},
+        }},
 }
 
 TD.BOON_DEFS={
@@ -113,10 +122,15 @@ TD.ITEM_DEFS={
     trollbane={name="Trollbane's Edge",desc="+10% attack speed",color={0.7,0.4,0.2},icon="T",apply=function(s) s.cdMult=(s.cdMult or 1)*0.90 end},
     nethershard={name="Netherstorm Shard",desc="10% double-hit chance",color={0.6,0.3,0.9},icon="N",apply=function(s) s.doubleHitChance=(s.doubleHitChance or 0)+0.10 end},
     -- Caverns of Time rewards
-    chronoshard={name="Chrono-Shard",desc="+5% dmg, rng, speed",color={0.8,0.7,0.2},icon="@",apply=function(s) s.dmgMult=(s.dmgMult or 1)*1.05; s.rangeMult=(s.rangeMult or 1)*1.05; s.cdMult=(s.cdMult or 1)*0.95 end},
-    infinityorb={name="Orb of the Infinite",desc="+15% all tower damage",color={0.9,0.8,0.4},icon="0",apply=function(s) s.dmgMult=(s.dmgMult or 1)*1.15 end},
-    timelordsigil={name="Timelord's Sigil",desc="+5g/wave, +10 start gold",color={0.7,0.6,0.9},icon="+",apply=function(s) s.waveGoldBonus=(s.waveGoldBonus or 0)+5; s.bonusGold=(s.bonusGold or 0)+10 end},
-    epochstone={name="Epoch Stone",desc="+8% crit, +5% double-hit",color={0.5,0.4,0.7},icon="=",apply=function(s) s.critChance=(s.critChance or 0)+0.08; s.doubleHitChance=(s.doubleHitChance or 0)+0.05 end},
+    chronoshard={name="Chrono-Shard",desc="Restore 1 life/wave, +5% dmg",color={0.8,0.7,0.2},icon="@",apply=function(s) s.waveLifeRegen=(s.waveLifeRegen or 0)+1; s.dmgMult=(s.dmgMult or 1)*1.05 end},
+    infinityorb={name="Orb of the Infinite",desc="12% crit, 2.0x crit dmg",color={0.9,0.8,0.4},icon="0",apply=function(s) s.critChance=(s.critChance or 0)+0.12; s.critMult=2.0 end},
+    timelordsigil={name="Timelord's Sigil",desc="+6g/wave, +15 start gold",color={0.7,0.6,0.9},icon="+",apply=function(s) s.waveGoldBonus=(s.waveGoldBonus or 0)+6; s.bonusGold=(s.bonusGold or 0)+15 end},
+    epochstone={name="Epoch Stone",desc="25% shield pierce, 5% double-hit",color={0.5,0.4,0.7},icon="=",apply=function(s) s.shieldPiercePct=(s.shieldPiercePct or 0)+0.25; s.doubleHitChance=(s.doubleHitChance or 0)+0.05 end},
+    -- Depths of Azshara rewards
+    tidalscepter={name="Tidal Scepter",desc="+1 life on boss kill, +30% slow dur",color={0.2,0.4,0.8},icon="&",apply=function(s) s.lifeOnBossKill=(s.lifeOnBossKill or 0)+1; s.slowDurMult=(s.slowDurMult or 1)*1.30 end},
+    abyssalcore={name="Abyssal Core",desc="Kills explode: 25 dmg, 80px",color={0.15,0.2,0.5},icon="Q",apply=function(s) s.deathSplash=(s.deathSplash or 0)+25; s.deathSplashRadius=80 end},
+    depthcharger={name="Depth Charge",desc="+15% boss dmg, +10% vs slowed",color={0.1,0.35,0.6},icon="J",apply=function(s) s.bossDmgMult=(s.bossDmgMult or 1)*1.15; s.slowedDmgMult=(s.slowedDmgMult or 1)*1.10 end},
+    azsharastiara={name="Azshara's Tiara",desc="+8% all stats, 15% shield pierce",color={0.5,0.3,0.8},icon="A",apply=function(s) s.dmgMult=(s.dmgMult or 1)*1.08; s.rangeMult=(s.rangeMult or 1)*1.08; s.cdMult=(s.cdMult or 1)*0.92; s.shieldPiercePct=(s.shieldPiercePct or 0)+0.15 end},
 }
 
 -- Item set bonuses (equip 2 from a set for bonus)
@@ -129,6 +143,8 @@ TD.ITEM_SETS={
     {name="Dragon's Hoard",items={"dragonscale","wyrmtooth"},desc="+2 lives",color={0.4,0.5,0.6},apply=function(s) s.bonusLives=(s.bonusLives or 0)+2 end},
     {name="Scourge Remnants",items={"frostmourneshard","icecrowntabard"},desc="+10% attack speed",color={0.5,0.7,1},apply=function(s) s.cdMult=(s.cdMult or 1)*0.90 end},
     {name="Illidari Arsenal",items={"warglaiveshard","illidanseye"},desc="+15% damage",color={0.2,0.7,0.2},apply=function(s) s.dmgMult=(s.dmgMult or 1)*1.15 end},
+    {name="Timewalker's Regalia",items={"chronoshard","epochstone"},desc="+10% all stats",color={0.8,0.7,0.3},apply=function(s) s.dmgMult=(s.dmgMult or 1)*1.10; s.rangeMult=(s.rangeMult or 1)*1.10; s.cdMult=(s.cdMult or 1)*0.90 end},
+    {name="Naga Sovereignty",items={"tidalscepter","azsharastiara"},desc="+2 lives, +20% boss dmg",color={0.3,0.25,0.7},apply=function(s) s.bonusLives=(s.bonusLives or 0)+2; s.bossDmgMult=(s.bossDmgMult or 1)*1.20 end},
 }
 
 function TD.GetItemSet(itemId)
@@ -139,7 +155,8 @@ TD.ITEM_ORDER={"spyglass","coinpurse","barricade","arcanedust","frostshard","mol
     "hoggersclaw","goldshiremedal","durnholdesignet","hillsbradtrophy","moonwellwater","satyrhorn","darkironband","lavacoreshard",
     "karazhankey","ghostlantern","dragonscale","wyrmtooth","frostmourneshard","icecrowntabard","warglaiveshard","illidanseye",
     "rangersbow","merchantpurse","wintergrasp","plaguevial","lightbringer","stormhammer","trollbane","nethershard",
-    "chronoshard","infinityorb","timelordsigil","epochstone"}
+    "chronoshard","infinityorb","timelordsigil","epochstone",
+    "tidalscepter","abyssalcore","depthcharger","azsharastiara"}
 
 function TD.GetEquippedStats() TD.EnsureSaved(); local st={}
     for _,id in ipairs(TowerDefenseSaved.equipped) do local d=TD.ITEM_DEFS[id]; if d then d.apply(st) end end

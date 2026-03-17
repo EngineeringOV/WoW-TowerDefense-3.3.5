@@ -26,10 +26,17 @@ function TD.StartWave()
     local wi=g.waveList[g.wave]; wipe(g.spawnQueue); g.waveImmunity=wi.immunity
     for _,tn in ipairs(wi.enemies) do g.spawnQueue[#g.spawnQueue+1]={typeName=tn,hpScale=wi.hpScale,immunity=wi.immunity} end
     if wi.spawnMapBoss then local bId=wi.bossId or g.currentMap.boss; if bId then g.spawnQueue[#g.spawnQueue+1]={typeName="_mapboss",hpScale=wi.hpScale,immunity=nil,bossId=bId} end end
+    -- Ambush: half the non-boss enemies spawn mid-path
+    local md=g.currentMap; local ambushTag=""
+    if md.ambushWaypointIdx and md.ambushWaves then local isAmb=false
+        for _,aw in ipairs(md.ambushWaves) do if aw==g.wave then isAmb=true; break end end
+        if isAmb then for i,entry in ipairs(g.spawnQueue) do
+            if not entry.bossId and i%2==0 then entry.ambushIdx=md.ambushWaypointIdx end end
+            ambushTag=" |cff00ccff[AMBUSH]|r" end end
     g.spawnTimer=0; g.state=TD.S_PLAY; g.sellMode=false; TD.UpdateHUD()
     local tag=wi.gimmickTag and (" - "..wi.gimmickTag) or ""; local burst=wi.isBurst and " |cffff8800[BURST]|r" or ""
     local bossTag=""; if wi.spawnMapBoss then local bId=wi.bossId or g.currentMap.boss; if bId and TD.BOSS_DEFS[bId] then bossTag=" |cffff00ff["..TD.BOSS_DEFS[bId].name.."]|r" end end
-    DEFAULT_CHAT_FRAME:AddMessage(string.format("|cff00ccff[TD]|r W%d/%d (%d)%s%s%s",g.wave,g.totalWaves,#g.spawnQueue,tag,burst,bossTag))
+    DEFAULT_CHAT_FRAME:AddMessage(string.format("|cff00ccff[TD]|r W%d/%d (%d)%s%s%s%s",g.wave,g.totalWaves,#g.spawnQueue,tag,burst,bossTag,ambushTag))
 end
 
 function TD.GetSpawnInterval() local g=TD.game; local base=TD.SPAWN_CD; local md=g.currentMap
@@ -50,10 +57,11 @@ local function GetEF()
 
 local function DeepCopyAbilities(abilities) local out={}; for _,a in ipairs(abilities) do local copy={}; for k,v in pairs(a) do copy[k]=v end; out[#out+1]=copy end; return out end
 
-function TD.SpawnEnemy(tn,hpScale,immunity)
+function TD.SpawnEnemy(tn,hpScale,immunity,startIdx)
     local d=TD.ENEMY_DEFS[tn]; if not d then return end
     local ef=GetEF(); ef:SetSize(d.size,d.size); ef.body:SetVertexColor(d.color[1],d.color[2],d.color[3],1)
-    local sp=TD.currentPathPoints[1]; ef:ClearAllPoints(); ef:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",sp.x,-sp.y); ef:Show()
+    local si=startIdx or 1; local sp=TD.currentPathPoints[si]; if not sp then sp=TD.currentPathPoints[1]; si=1 end
+    ef:ClearAllPoints(); ef:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",sp.x,-sp.y); ef:Show()
     local mhp=math.floor(d.hp*hpScale); local spd=d.speed; if TD.game.currentMap and TD.game.currentMap.speedMult then spd=spd*TD.game.currentMap.speedMult end
     if immunity then ef.immBar:SetAlpha(0.8)
         if immunity=="nomagic" then ef.immBar:SetVertexColor(0.4,0.4,1,0.8) elseif immunity=="nophysic" then ef.immBar:SetVertexColor(0.8,0.6,0.2,0.8)
@@ -62,7 +70,7 @@ function TD.SpawnEnemy(tn,hpScale,immunity)
     else ef.immBar:SetAlpha(0) end
     ef.flash:SetAlpha(0); if ef.nameLabel then ef.nameLabel:SetText(""); ef.nameLabel:Hide() end
     local en={typeName=tn,hp=mhp,maxHP=mhp,speed=spd,baseSpeed=spd,reward=d.reward,
-        pathIndex=2,x=sp.x,y=sp.y,frame=ef,slowTimer=0,alive=true,dots={},immunity=immunity,isBoss=false,abilities=nil,lastTileKey=nil,flashTimer=0}
+        pathIndex=si+1,x=sp.x,y=sp.y,frame=ef,slowTimer=0,alive=true,dots={},immunity=immunity,isBoss=false,abilities=nil,lastTileKey=nil,flashTimer=0}
     local bw=ef.hpBg:GetWidth(); if bw<1 then bw=d.size end; ef.hpBar:SetWidth(bw)
     TD.game.enemies[#TD.game.enemies+1]=en end
 
@@ -164,7 +172,8 @@ end
 function TD.DamageEnemy(en,damage,tower,isSplash)
     local st=TD.game.equippedStats; local spec=TD.game.activeSpecs[tower.specIdx]; local imm=en.immunity
     if imm=="nomagic" and spec.family=="mage" then return end; if imm=="nophysic" and spec.family=="hunter" then return end
-    if en.shieldCharges and en.shieldCharges>0 then en.shieldCharges=en.shieldCharges-1; return end
+    if en.shieldCharges and en.shieldCharges>0 then
+        if not (st.shieldPiercePct and math.random()<st.shieldPiercePct) then en.shieldCharges=en.shieldCharges-1; return end end
     if en.dmgReduce then damage=math.floor(damage*(1-en.dmgReduce)) end
     -- Item damage modifiers
     if st.firstStrikeMult and en.hp>=en.maxHP then damage=math.floor(damage*st.firstStrikeMult) end
@@ -186,7 +195,11 @@ function TD.DamageEnemy(en,damage,tower,isSplash)
         if st.deathSplash and st.deathSplash>0 then local rad=st.deathSplashRadius or 60
             for _,e in ipairs(TD.game.enemies) do if e.alive and e~=en and TD.Dist(en.x,en.y,e.x,e.y)<=rad then
                 e.hp=e.hp-st.deathSplash; TD.FlashEnemy(e,1,0.6,0.2) end end end
-        if en.isBoss then DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." defeated! +"..rw.."g") end
+        if en.isBoss then
+            if st.lifeOnBossKill and st.lifeOnBossKill>0 then local maxLives=TD.game.currentMap.startLives+(st.bonusLives or 0)
+                TD.game.lives=math.min(TD.game.lives+st.lifeOnBossKill,maxLives)
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[TD]|r Boss killed! +"..st.lifeOnBossKill.." life restored!") end
+            DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." defeated! +"..rw.."g") end
     else
         if imm~="noslow" then local ti=tower.tier; local sp=TD.TS(spec,"slowPct",ti); local sd=TD.TS(spec,"slowDur",ti)
             if st.slowDurMult and sd>0 then sd=sd*st.slowDurMult end; if sp>0 then en.speed=en.baseSpeed*(1-sp); en.slowTimer=sd end
@@ -277,7 +290,7 @@ function TD.UpdateTowers(elapsed)
 
 function TD.UpdateSpawning(elapsed) local g=TD.game; if #g.spawnQueue==0 then return end; g.spawnTimer=g.spawnTimer+elapsed
     if g.spawnTimer>=TD.GetSpawnInterval() then g.spawnTimer=g.spawnTimer-TD.GetSpawnInterval()
-        local entry=table.remove(g.spawnQueue,1); if entry.bossId then TD.SpawnMapBoss(entry.bossId,entry.hpScale) else TD.SpawnEnemy(entry.typeName,entry.hpScale,entry.immunity) end end end
+        local entry=table.remove(g.spawnQueue,1); if entry.bossId then TD.SpawnMapBoss(entry.bossId,entry.hpScale) else TD.SpawnEnemy(entry.typeName,entry.hpScale,entry.immunity,entry.ambushIdx) end end end
 
 function TD.CheckWaveComplete() local g=TD.game; if g.state~=TD.S_PLAY then return end
     if #g.spawnQueue==0 and #g.enemies==0 then
