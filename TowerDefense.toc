@@ -1,0 +1,12 @@
+## Interface: 30300
+## Title: |cff00ccffTower Defense|r
+## Notes: Tower defense with specializations, items, boon tiles, and challenges.
+## Author: Taricraft
+## Version: 5.0.0
+## SavedVariables: TowerDefenseSaved
+
+Core.lua
+Maps.lua
+Waves.lua
+UI.lua
+Game.lua
