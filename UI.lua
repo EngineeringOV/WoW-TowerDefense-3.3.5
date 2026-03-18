@@ -391,7 +391,9 @@ function TD.SellTower(tower) TD.game.gold=TD.game.gold+TD.SellValue(tower); TD.g
     for i,t in ipairs(TD.game.towers) do if t==tower then table.remove(TD.game.towers,i); break end end; TD.UpdateHUD() end
 
 -- Grid (no flanking)
-function TD.CreateGrid() local ga=TD.frames.gameArea; wipe(TD.frames.cells); for _,ch in ipairs({ga:GetChildren()}) do ch:Hide() end
+function TD.CreateGrid() local ga=TD.frames.gameArea
+    -- Hide old cells individually instead of ga:GetChildren() which overflows the stack
+    for _,cell in pairs(TD.frames.cells) do cell:Hide() end; wipe(TD.frames.cells)
     local th=TD.game.currentMap.theme
     for r=1,ROWS do for c=1,COLS do local cell=CreateFrame("Button",nil,ga); cell:SetSize(C-1,C-1); cell:SetPoint("TOPLEFT",ga,"TOPLEFT",(c-1)*C,-((r-1)*C))
         cell.col=c; cell.row=r; cell.bg=TD.Tex(cell,"BACKGROUND",0,0,0,1); cell.bg:SetAllPoints()
