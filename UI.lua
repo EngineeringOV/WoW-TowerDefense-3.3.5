@@ -336,6 +336,9 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
         btn:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
         btn:SetBackdropColor(spec.color[1]*0.25,spec.color[2]*0.25,spec.color[3]*0.25,0.9); btn:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8)
         local hl=btn:CreateTexture(nil,"HIGHLIGHT"); hl:SetTexture(HIGHLIGHT); hl:SetBlendMode("ADD"); hl:SetAllPoints(); hl:SetAlpha(0.15)
+        -- Selection glow frame (bigger gold border)
+        local glow=CreateFrame("Frame",nil,btn); glow:SetPoint("TOPLEFT",-4,4); glow:SetPoint("BOTTOMRIGHT",4,-4); glow:SetFrameLevel(btn:GetFrameLevel()-1)
+        glow:SetBackdrop({edgeFile=GOLDBDR,edgeSize=16,insets={left=4,right=4,top=4,bottom=4}}); glow:SetBackdropBorderColor(1,0.85,0.2,1); glow:Hide(); btn.selGlow=glow
         local icon=btn:CreateTexture(nil,"ARTWORK"); icon:SetSize(btnH-8,btnH-8); icon:SetPoint("LEFT",4,0)
         TD.SetSpecIcon(icon,spec)
         local nl=TD.Lbl(btn,12,1,0.95,0.8); nl:SetPoint("TOPLEFT",btnH-2,-6); nl:SetWidth(btnW-btnH-6); nl:SetJustifyH("LEFT"); nl:SetText(spec.name)
@@ -358,7 +361,8 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
     TD.ui.statusFrame:ClearAllPoints(); TD.ui.statusFrame:SetPoint("TOP",panel,"TOP",0,yBase-110) end
 
 function TD.UpdateTowerBtns() for i,btn in ipairs(TD.ui.towerBtns) do local spec=btn.spec
-    if TD.game.selectedTower==i then btn:SetBackdropBorderColor(1,0.85,0.2,1) else btn:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8) end end end
+    if TD.game.selectedTower==i then btn:SetBackdropBorderColor(1,0.85,0.2,1); if btn.selGlow then btn.selGlow:Show() end
+    else btn:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8); if btn.selGlow then btn.selGlow:Hide() end end end end
 
 -- Upgrade popup shows paladin buff
 function TD.ShowUpgrade(tower)
