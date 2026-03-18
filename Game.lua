@@ -15,8 +15,8 @@ function TD.StartMap(mapIndex)
     TD.currentBoonGrid=TD.BuildBoons(md,TD.currentPathGrid,TD.currentBlockedGrid)
     TD.currentTriggerGrid=TD.BuildTriggers(md,TD.currentPathGrid)
     TD.CreateGrid(); TD.HideUpgrade(); TD.BuildTowerBtns(); TD.ui.mapTitleL:SetText(md.name); TD.UpdateHUD(); TD.ShowGame()
-    DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r "..md.name.." ("..md.difficulty..") - "..g.totalWaves.." waves")
-    if md.boss and TD.BOSS_DEFS[md.boss] then DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Boss: |cffff00ff"..TD.BOSS_DEFS[md.boss].name.."|r - "..TD.BOSS_DEFS[md.boss].desc) end
+    DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r "..TD.MapLink(md.id).." ("..md.difficulty..") - "..g.totalWaves.." waves")
+    if md.boss and TD.BOSS_DEFS[md.boss] then DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Boss: "..TD.BossLink(md.boss).." - "..TD.BOSS_DEFS[md.boss].desc) end
 end
 
 function TD.StartWave()
@@ -35,7 +35,7 @@ function TD.StartWave()
             ambushTag=" |cff00ccff[AMBUSH]|r" end end
     g.spawnTimer=0; g.state=TD.S_PLAY; g.sellMode=false; TD.UpdateHUD()
     local tag=wi.gimmickTag and (" - "..wi.gimmickTag) or ""; local burst=wi.isBurst and " |cffff8800[BURST]|r" or ""
-    local bossTag=""; if wi.spawnMapBoss then local bId=wi.bossId or g.currentMap.boss; if bId and TD.BOSS_DEFS[bId] then bossTag=" |cffff00ff["..TD.BOSS_DEFS[bId].name.."]|r" end end
+    local bossTag=""; if wi.spawnMapBoss then local bId=wi.bossId or g.currentMap.boss; if bId and TD.BOSS_DEFS[bId] then bossTag=" "..TD.BossLink(bId) end end
     DEFAULT_CHAT_FRAME:AddMessage(string.format("|cff00ccff[TD]|r W%d/%d (%d)%s%s%s%s",g.wave,g.totalWaves,#g.spawnQueue,tag,burst,bossTag,ambushTag))
 end
 
@@ -89,7 +89,7 @@ function TD.SpawnMapBoss(bossId,hpScale)
         enraged=false,metamorphed=false,vanished=false,flashTimer=0}
     for _,ab in ipairs(en.abilities) do if ab.trigger=="onSpawn" and ab.action=="immunity" then en.immunity=ab.immType end end
     local bw=ef.hpBg:GetWidth(); if bw<1 then bw=bd.size end; ef.hpBar:SetWidth(bw)
-    TD.game.enemies[#TD.game.enemies+1]=en; DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..bd.name.." has arrived!") end
+    TD.game.enemies[#TD.game.enemies+1]=en; DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(bossId).." has arrived!") end
 
 -- Flash an enemy briefly (pulse/splash hit indicator)
 function TD.FlashEnemy(en,r,g,b)
@@ -117,11 +117,11 @@ function TD.UpdateBossAbilities(en,elapsed)
     for _,ab in ipairs(en.abilities) do
         if ab.trigger=="onHpPct" and not ab.done and pct<=ab.pct then ab.done=true
             if ab.action=="enrage" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.enraged=true; en.dmgReduce=ab.dmgReduce or 0; en.frame.body:SetVertexColor(1,0.3,0.1,1)
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cffff4444ENRAGED!|r")
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." |cffff4444ENRAGED!|r")
             elseif ab.action=="metamorph" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.metamorphed=true; en.regenPct=ab.regenPct; en.immunity="noslow"; en.frame.body:SetVertexColor(0.1,0.9,0.1,1)
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cff00ff00METAMORPHOSIS!|r")
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." |cff00ff00METAMORPHOSIS!|r")
             elseif ab.action=="rewind" then en.hp=math.floor(en.maxHP*(ab.healPct or 0.5)); en.frame.body:SetVertexColor(0.9,0.8,0.2,1)
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cffffd700REWINDS TIME!|r HP restored to "..math.floor((ab.healPct or 0.5)*100).."%!") end end
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." |cffffd700REWINDS TIME!|r HP restored to "..math.floor((ab.healPct or 0.5)*100).."%!") end end
         if ab.trigger=="periodic" then ab.timer=(ab.timer or 0)+elapsed
             if ab.action=="shield" and ab.timer>=ab.interval then ab.timer=0; ab.currentCharges=ab.charges; en.shieldCharges=ab.charges end
             if ab.action=="vanish" then if en.vanished then ab.vanishTimer=(ab.vanishTimer or 0)+elapsed
@@ -129,14 +129,14 @@ function TD.UpdateBossAbilities(en,elapsed)
                 elseif ab.timer>=ab.interval then ab.timer=0; en.vanished=true; ab.vanishTimer=0; en.frame:SetAlpha(0.15) end end
             if ab.action=="bonestorm" and ab.timer>=ab.interval then ab.timer=0
                 for _,e in ipairs(g.enemies) do if e.alive then e.speed=e.baseSpeed*ab.spdBuff; e.slowTimer=ab.dur end end
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName..": |cffff8800BONE STORM!|r") end end
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId)..": |cffff8800BONE STORM!|r") end end
         if en.metamorphed and en.regenPct then en.hp=math.min(en.maxHP,en.hp+en.maxHP*en.regenPct*elapsed) end end
     local col=math.floor(en.x/TD.CELL)+1; local row=math.floor(en.y/TD.CELL)+1; local tileKey=col..","..row
     if tileKey~=en.lastTileKey then en.lastTileKey=tileKey
         if TD.currentTriggerGrid[tileKey] then for _,ab in ipairs(en.abilities) do
             if ab.trigger=="onTile" and ab.action=="spawnAdds" then local wi=g.waveList[g.wave]
                 for i=1,ab.addCount do TD.SpawnEnemy(ab.addType,(wi and wi.hpScale or 1)*(ab.addHpMult or 1),nil) end
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." summons "..ab.addCount.." "..ab.addType.."s!") end end end end end
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." summons "..ab.addCount.." "..ab.addType.."s!") end end end end end
 
 function TD.BossOnHit(en) if not en.abilities then return end
     for _,ab in ipairs(en.abilities) do if ab.trigger=="onHit" and ab.action=="rally" and math.random()<ab.chance then
@@ -217,7 +217,7 @@ function TD.DamageEnemy(en,damage,tower,isSplash)
             if st.lifeOnBossKill and st.lifeOnBossKill>0 then local maxLives=TD.game.currentMap.startLives+(st.bonusLives or 0)
                 TD.game.lives=math.min(TD.game.lives+st.lifeOnBossKill,maxLives)
                 DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[TD]|r Boss killed! +"..st.lifeOnBossKill.." life restored!") end
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." defeated! +"..rw..TD.GOLD_ICON) end
+            DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." defeated! +"..rw..TD.GOLD_ICON) end
     else
         if imm~="noslow" then local ti=tower.tier; local sp=TD.TS(spec,"slowPct",ti); local sd=TD.TS(spec,"slowDur",ti)
             if st.slowDurMult and sd>0 then sd=sd*st.slowDurMult end; if sp>0 then en.speed=en.baseSpeed*(1-sp); en.slowTimer=sd end
@@ -342,11 +342,28 @@ local function OnUpdate(self,elapsed)
 
 local function Init() TD.EnsureSaved(); TD.CreateMain(); TD.CreateMenu(); TD.CreateGameScreen()
     TD.frames.main:SetScript("OnUpdate",OnUpdate); TD.frames.main:Hide(); TD.RefreshMenu(); TD.game.state=TD.S_MENU
-    -- Hook chat links for gimmick tooltips
+    -- Hook chat links for clickable tooltips
     local origRef=SetItemRef; SetItemRef=function(link,text,button,chatFrame)
         if link and link:find("^TDG:") then local tag=link:sub(5)
             GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(tag,1,0.8,0.3)
             local info=TD.GIMMICK_INFO[tag]; if info then GameTooltip:AddLine(info,0.9,0.85,0.75,true) end; GameTooltip:Show(); return end
+        if link and link:find("^TD:boss:") then local bId=link:sub(9); local bd=TD.BOSS_DEFS[bId]
+            if bd then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(bd.name,1,0,1)
+                GameTooltip:AddLine(string.format("HP: %d  Speed: %d  Reward: %d",bd.hp,bd.speed,bd.reward),0.8,0.8,0.8)
+                GameTooltip:AddLine(bd.desc,0.9,0.85,0.75,true); GameTooltip:Show() end; return end
+        if link and link:find("^TD:enemy:") then local eId=link:sub(10); local ed=TD.ENEMY_DEFS[eId]
+            if ed then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(ed.name,ed.color[1],ed.color[2],ed.color[3])
+                GameTooltip:AddLine(string.format("HP: %d  Speed: %d  Reward: %d",ed.hp,ed.speed,ed.reward),0.8,0.8,0.8); GameTooltip:Show() end; return end
+        if link and link:find("^TD:item:") then local iId=link:sub(9); local d=TD.ITEM_DEFS[iId]
+            if d then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(d.name,d.color[1],d.color[2],d.color[3])
+                GameTooltip:AddLine(d.desc,0.9,0.85,0.75); GameTooltip:Show() end; return end
+        if link and link:find("^TD:map:") then local mId=link:sub(8)
+            for _,md in ipairs(TD.MAPS) do if md.id==mId then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR")
+                GameTooltip:AddLine(md.name,0.9,0.8,0.5); GameTooltip:AddLine(md.difficulty.." - "..md.totalWaves.." waves",md.diffColor[1],md.diffColor[2],md.diffColor[3])
+                GameTooltip:AddLine(md.desc,0.9,0.85,0.75,true); GameTooltip:Show(); break end end; return end
+        if link and link:find("^TD:spec:") then local sId=link:sub(9); local sp=TD.SPECS[sId]
+            if sp then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(sp.name,sp.color[1],sp.color[2],sp.color[3])
+                GameTooltip:AddLine(sp.desc,0.9,0.85,0.75,true); GameTooltip:Show() end; return end
         return origRef(link,text,button,chatFrame) end
     DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[Tower Defense]|r v5.1. |cff00ff00/td|r to play. Click gimmick names in chat for info.") end
 SLASH_TOWERDEFENSE1="/td"; SLASH_TOWERDEFENSE2="/towerdefense"

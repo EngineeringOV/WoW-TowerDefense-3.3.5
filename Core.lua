@@ -4,6 +4,19 @@ TD.SOLID="Interface\\Buttons\\WHITE8X8"; TD.MINIMAP_CIRCLE="Interface\\Minimap\\
 TD.CELL=48; TD.COLS=20; TD.ROWS=13; TD.PANEL_W=300; TD.PAD_TOP=50; TD.PAD_BOT=28
 TD.PROJ_SPEED=380; TD.SPAWN_CD=0.6; TD.BREAK_TIME=8
 TD.GOLD_ICON="|TInterface\\MoneyFrame\\UI-GoldIcon:0|t"
+
+-- Clickable chat link helpers
+function TD.BossLink(bossId) local bd=TD.BOSS_DEFS[bossId]; if not bd then return bossId end
+    return "|cffff00ff|HTD:boss:"..bossId.."|h["..bd.name.."]|h|r" end
+function TD.EnemyLink(typeName) local ed=TD.ENEMY_DEFS[typeName]; if not ed then return typeName end
+    return "|HTD:enemy:"..typeName.."|h["..ed.name.."]|h" end
+function TD.ItemLink(itemId) local d=TD.ITEM_DEFS[itemId]; if not d then return itemId end
+    return "|cff"..string.format("%02x%02x%02x",d.color[1]*255,d.color[2]*255,d.color[3]*255).."|HTD:item:"..itemId.."|h["..d.name.."]|h|r" end
+function TD.MapLink(mapId)
+    for _,md in ipairs(TD.MAPS) do if md.id==mapId then return "|cff00ccff|HTD:map:"..mapId.."|h["..md.name.."]|h|r" end end; return mapId end
+function TD.SpecLink(specId) local sp=TD.SPECS[specId]; if not sp then return specId end
+    local r,g,b=sp.color[1],sp.color[2],sp.color[3]
+    return "|cff"..string.format("%02x%02x%02x",r*255,g*255,b*255).."|HTD:spec:"..specId.."|h["..sp.name.."]|h|r" end
 TD.S_MENU=-1; TD.S_EQUIP=-2; TD.S_IDLE=0; TD.S_PLAY=1; TD.S_BREAK=2; TD.S_OVER=3; TD.S_WIN=4
 
 function TD.EnsureSaved() local s=TowerDefenseSaved

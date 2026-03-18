@@ -387,6 +387,7 @@ function TD.ShowUpgrade(tower)
 
 function TD.HideUpgrade() if TD.frames.upgradeFrame then TD.frames.upgradeFrame:Hide() end; TD.activeTowerPanel=nil end
 function TD.SellValue(tower) local spec=TD.game.activeSpecs[tower.specIdx]; local total=spec.baseCost; for t=2,tower.tier do total=total+(spec.upgradeCost[t] or 0) end
+    if TD.game.wave==0 then return total end
     local pct=0.5; local st=TD.game.equippedStats; if st and st.sellMult then pct=st.sellMult end; return math.floor(total*pct) end
 function TD.SellTower(tower) TD.game.gold=TD.game.gold+TD.SellValue(tower); TD.game.tracking.sellCount=TD.game.tracking.sellCount+1; tower.frame:Hide()
     for i,t in ipairs(TD.game.towers) do if t==tower then table.remove(TD.game.towers,i); break end end; TD.UpdateHUD() end

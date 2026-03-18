@@ -137,9 +137,11 @@ function TD.IsChallengeComplete(id) TD.EnsureSaved(); return TowerDefenseSaved.c
 function TD.SaveMapProgress(id,wave,total,livesLeft,startLives) TD.EnsureSaved(); local p=TD.GetMapProgress(id); if wave>p.bestWave then p.bestWave=wave end
     if wave>=total and livesLeft>0 then local stars=1; if livesLeft>=math.floor(startLives*0.5) then stars=2 end; if livesLeft>=startLives then stars=3 end
         if not p.completed then p.completed=true; local md; for _,m in ipairs(TD.MAPS) do if m.id==id then md=m; break end end
-            if md and md.rewardItem then TD.GiveItem(md.rewardItem); local d=TD.ITEM_DEFS[md.rewardItem]; DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Item: |cffffd700"..d.name.."|r") end end
+            if md and md.rewardItem then TD.GiveItem(md.rewardItem); DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Item: "..TD.ItemLink(md.rewardItem)) end end
         if stars>(p.stars or 0) then p.stars=stars end end; TowerDefenseSaved.maps[id]=p end
 function TD.CheckChallenges(md,tr) if not md.challenges then return end; for _,ch in ipairs(md.challenges) do if not TD.IsChallengeComplete(ch.id) then
     local cd=TD.CHALLENGE_DEFS[ch.type]; if cd and cd.check(tr) then TowerDefenseSaved.challenges[ch.id]=true
         if ch.reward.spec then TD.UnlockSpec(ch.reward.spec) end; if ch.reward.item then TD.GiveItem(ch.reward.item) end
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r |cffffd700"..cd.name.."|r! "..ch.rewardText) end end end end
+        local parts={}; if ch.reward.item then parts[#parts+1]=TD.ItemLink(ch.reward.item) end
+        if ch.reward.spec then parts[#parts+1]=TD.SpecLink(ch.reward.spec) end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r |cffffd700["..cd.name.."]|r complete! Reward: "..table.concat(parts," + ")) end end end end
