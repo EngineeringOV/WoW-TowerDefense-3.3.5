@@ -118,7 +118,7 @@ TD.MAPS={
                     {id="azs_2",type="speedrun",reward={item="depthcharger"},rewardText="Depth Charge"},
                     {id="azs_3",type="endurance",reward={item="azsharastiara"},rewardText="Azshara's Tiara"}},
         waypoints={{1,7},{20,7}},
-        theme={ground={0.18,0.16,0.10},path={0.85,0.75,0.55},blocked={0.10,0.18,0.35},bChar="~",bName="Coral Reef"},
+        theme={ground={0.76,0.70,0.50},path={0.85,0.75,0.55},blocked={0.25,0.45,0.55},bChar="~",bName="Coral Reef"},
         blocked={{5,3},{6,3},{10,6},{10,7},{15,4},{15,5},{5,10},{6,10},{10,11},{15,9},{15,10}},
         boons={{3,1,"power"},{8,5,"haste"},{13,2,"range"},{3,12,"power"},{8,8,"haste"},{13,11,"range"},{18,4,"power"},{18,9,"haste"}},
         triggerTiles={},
@@ -226,6 +226,45 @@ function TD.ComputeOpenFieldPath(spawnRow)
     -- Add exit point past left edge
     pts[#pts+1]={x=-TD.CELL,y=pts[#pts].y}
     return pts end
+
+-- Recalculate BFS paths for all living enemies (called after tower place/sell)
+function TD.RepathEnemies()
+    local bg=TD.BuildOpenFieldBlocked()
+    for _,e in ipairs(TD.game.enemies) do
+        if e.alive and e.ownPath then
+            -- Figure out enemy's current grid cell
+            local curCol=math.floor(e.x/TD.CELL)+1; local curRow=math.floor(e.y/TD.CELL)+1
+            if curCol<1 then curCol=1 end; if curCol>TD.COLS then curCol=TD.COLS end
+            if curRow<1 then curRow=1 end; if curRow>TD.ROWS then curRow=TD.ROWS end
+            -- Determine if enemy is heading right (toward babes) or left (returning)
+            local oldPath=e.ownPath; local totalPts=#oldPath; local pi=e.pathIndex
+            -- Find the midpoint: the rightmost cell is roughly where the enemy turns around
+            local midIdx=1; for idx,pt in ipairs(oldPath) do if pt.x>(oldPath[midIdx] or oldPath[1]).x then midIdx=idx end end
+            local headingRight=(pi<=midIdx+1)
+            local newPath
+            if headingRight then
+                -- BFS to right side, then to left
+                local toRight=TD.BFSToColumn(curCol,curRow,TD.COLS,bg)
+                if toRight then
+                    local endCell=toRight[#toRight]
+                    local toLeft=TD.BFSToColumn(endCell[1],endCell[2],1,bg)
+                    if toLeft then
+                        local pts={}
+                        for _,c in ipairs(toRight) do local x,y=TD.CC(c[1],c[2]); pts[#pts+1]={x=x,y=y} end
+                        for i=2,#toLeft do local x,y=TD.CC(toLeft[i][1],toLeft[i][2]); pts[#pts+1]={x=x,y=y} end
+                        pts[#pts+1]={x=-TD.CELL,y=pts[#pts].y}
+                        newPath=pts end end
+            else
+                -- Already heading back left, just BFS to left exit
+                local toLeft=TD.BFSToColumn(curCol,curRow,1,bg)
+                if toLeft then
+                    local pts={}
+                    for _,c in ipairs(toLeft) do local x,y=TD.CC(c[1],c[2]); pts[#pts+1]={x=x,y=y} end
+                    pts[#pts+1]={x=-TD.CELL,y=pts[#pts].y}
+                    newPath=pts end
+            end
+            if newPath and #newPath>=2 then e.ownPath=newPath; e.pathIndex=2 end
+        end end end
 
 function TD.GetMapProgress(id) TD.EnsureSaved(); return TowerDefenseSaved.maps[id] or {bestWave=0,completed=false,stars=0} end
 function TD.IsChallengeComplete(id) TD.EnsureSaved(); return TowerDefenseSaved.challenges[id]==true end

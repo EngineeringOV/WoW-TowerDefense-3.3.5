@@ -398,7 +398,8 @@ function TD.SellValue(tower) local spec=TD.game.activeSpecs[tower.specIdx]; loca
     if TD.game.wave==0 then return total end
     local pct=0.5; local st=TD.game.equippedStats; if st and st.sellMult then pct=st.sellMult end; return math.floor(total*pct) end
 function TD.SellTower(tower) TD.game.gold=TD.game.gold+TD.SellValue(tower); if TD.game.wave>0 then TD.game.tracking.sellCount=TD.game.tracking.sellCount+1 end; tower.frame:Hide()
-    for i,t in ipairs(TD.game.towers) do if t==tower then table.remove(TD.game.towers,i); break end end; TD.UpdateHUD() end
+    for i,t in ipairs(TD.game.towers) do if t==tower then table.remove(TD.game.towers,i); break end end
+    if TD.game.currentMap and TD.game.currentMap.openField then TD.RepathEnemies() end; TD.UpdateHUD() end
 
 -- Grid
 function TD.CreateGrid() local ga=TD.frames.gameArea
@@ -520,4 +521,6 @@ function TD.PlaceTower(specIdx,col,row)
     tf:SetScript("OnEnter",function() local rng=TD.TS(spec,"range",tower.tier); local st=TD.game.equippedStats
         if st.rangeMult then rng=rng*st.rangeMult end; if boon and TD.BOON_DEFS[boon].rngMult then rng=rng*TD.BOON_DEFS[boon].rngMult end; TD.ShowRange(col,row,rng) end)
     tf:SetScript("OnLeave",function() if TD.frames.rangeCircle and not TD.activeTowerPanel then TD.frames.rangeCircle:Hide() end end)
-    table.insert(TD.game.towers,tower); if not TD.frames.towerFrames then TD.frames.towerFrames={} end; table.insert(TD.frames.towerFrames,tf) end
+    table.insert(TD.game.towers,tower); if not TD.frames.towerFrames then TD.frames.towerFrames={} end; table.insert(TD.frames.towerFrames,tf)
+    -- Open-field: repath all living enemies around new tower
+    if TD.game.currentMap and TD.game.currentMap.openField then TD.RepathEnemies() end end
