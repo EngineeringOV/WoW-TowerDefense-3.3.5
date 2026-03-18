@@ -280,10 +280,11 @@ function TD.Fire(tower,target)
 
 function TD.UpdateProjectiles(elapsed) local rem={}; local spd=TD.PROJ_SPEED
     for i,p in ipairs(TD.game.projectiles) do
-        if not p.active then rem[#rem+1]=i elseif not p.target.alive then p.frame:Hide(); p.active=false; rem[#rem+1]=i
-        elseif p.target.vanished then p.frame:Hide(); p.active=false; rem[#rem+1]=i
+        if not p.active then rem[#rem+1]=i
+        elseif not p.target.alive then p.target.incomingDmg=(p.target.incomingDmg or 0)-p.damage; p.frame:Hide(); p.active=false; rem[#rem+1]=i
+        elseif p.target.vanished then p.target.incomingDmg=(p.target.incomingDmg or 0)-p.damage; p.frame:Hide(); p.active=false; rem[#rem+1]=i
         else local tx,ty=p.target.x,p.target.y; local dx=tx-p.x; local dy=ty-p.y; local dist=TD.Dist(p.x,p.y,tx,ty); local mv=spd*elapsed
-            if mv>=dist then TD.DamageEnemy(p.target,p.damage,p.tower)
+            if mv>=dist then p.target.incomingDmg=(p.target.incomingDmg or 0)-p.damage; TD.DamageEnemy(p.target,p.damage,p.tower)
                 -- Splash visual: flash hit enemies orange
                 if p.splash>0 and p.target.immunity~="noaoe" then
                     for _,e in ipairs(TD.game.enemies) do if e~=p.target and e.alive and e.immunity~="noaoe" and not e.vanished and TD.Dist(tx,ty,e.x,e.y)<=p.splash then
@@ -309,8 +310,9 @@ function TD.UpdateTowers(elapsed)
             if tower.cooldownTimer<=0 then local dmg,rng,cd=TD.TowerEffective(tower); local best,bestProg=nil,-1
                 for _,e in ipairs(TD.game.enemies) do if e.alive and not e.vanished then
                     local dom=false; if e.immunity=="nomagic" and spec.family=="mage" then dom=true end; if e.immunity=="nophysic" and spec.family=="hunter" then dom=true end
-                    if not dom then local d=TD.Dist(tower.cx,tower.cy,e.x,e.y); if d<=rng then local prog=e.pathIndex*10000-d; if prog>bestProg then best=e; bestProg=prog end end end end end
-                if best then TD.Fire(tower,best); tower.cooldownTimer=cd end end end end end
+                    if not dom then local d=TD.Dist(tower.cx,tower.cy,e.x,e.y); if d<=rng then
+                        local ehp=e.hp-(e.incomingDmg or 0); if ehp>0 then local prog=e.pathIndex*10000-d; if prog>bestProg then best=e; bestProg=prog end end end end end end
+                if best then best.incomingDmg=(best.incomingDmg or 0)+dmg; TD.Fire(tower,best); tower.cooldownTimer=cd end end end end end
 
 function TD.UpdateSpawning(elapsed) local g=TD.game; if #g.spawnQueue==0 then return end; g.spawnTimer=g.spawnTimer+elapsed
     if g.spawnTimer>=TD.GetSpawnInterval() then g.spawnTimer=g.spawnTimer-TD.GetSpawnInterval()
