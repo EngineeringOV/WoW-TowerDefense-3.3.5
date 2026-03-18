@@ -138,8 +138,10 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
         ib:SetSize(bw,bh); ib:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",2+col*(bw+6),-18-row*(bh+4))
         ib:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
         ib:SetBackdropColor(0.15,0.12,0.1,0.9); ib:SetBackdropBorderColor(0.4,0.35,0.25,0.8)
-        local d=TD.ITEM_DEFS[itemId]; local ic=TD.Lbl(ib,18,d.color[1],d.color[2],d.color[3]); ic:SetPoint("TOPLEFT",5,-4); ic:SetText(d.icon)
-        ib.nameL=TD.Lbl(ib,13,0.9,0.85,0.7); ib.nameL:SetPoint("TOPLEFT",24,-4); ib.nameL:SetWidth(bw-30); ib.nameL:SetJustifyH("LEFT"); ib.nameL:SetText(d.name)
+        local d=TD.ITEM_DEFS[itemId]; local iconSzI=20
+        if d.iconTex then local ic=ib:CreateTexture(nil,"ARTWORK"); ic:SetSize(iconSzI,iconSzI); ic:SetPoint("TOPLEFT",4,-4); ic:SetTexture(d.iconTex)
+        else local ic=TD.Lbl(ib,18,d.color[1],d.color[2],d.color[3]); ic:SetPoint("TOPLEFT",5,-4); ic:SetText(d.icon) end
+        ib.nameL=TD.Lbl(ib,13,0.9,0.85,0.7); ib.nameL:SetPoint("TOPLEFT",26,-4); ib.nameL:SetWidth(bw-32); ib.nameL:SetJustifyH("LEFT"); ib.nameL:SetText(d.name)
         local dl=TD.Lbl(ib,11,0.8,0.7,0.55); dl:SetPoint("TOPLEFT",5,-22); dl:SetWidth(bw-10); dl:SetJustifyH("LEFT"); dl:SetText(d.desc)
         ib.statL=TD.Lbl(ib,11,0.75,0.65,0.5); ib.statL:SetPoint("BOTTOM",0,4); ib.itemId=itemId
         ib:SetScript("OnClick",function() if TD.HasItem(itemId) then TD.equipSelItem=itemId; TD.RefreshEquip() end end)
@@ -175,10 +177,10 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
             sb.statL=TD.Lbl(sb,10,0.75,0.65,0.5); sb.statL:SetPoint("RIGHT",-8,5); sb.specId=specId; sb.famId=fam.id
             sb:SetScript("OnClick",function() if TD.IsSpecUnlocked(specId) then TowerDefenseSaved.specs[fam.id]=specId; TD.RefreshEquip() end end)
             sb:SetScript("OnEnter",function(self) GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:AddLine(spec.name,spec.color[1],spec.color[2],spec.color[3]); GameTooltip:AddLine(spec.desc,0.9,0.85,0.75)
-                if spec.pulse then for ti=1,3 do GameTooltip:AddLine(string.format("T%d: %d dmg to ALL in %d / %.1fs (%dg)",ti,TD.TS(spec,"damage",ti),TD.TS(spec,"range",ti),TD.TS(spec,"cooldown",ti),spec.baseCost+(spec.upgradeCost[ti] or 0)),1,0.8,0.3) end
+                if spec.pulse then for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg ALL in %d / %.1fs  %.1f DPS (%dg)",ti,d,TD.TS(spec,"range",ti),cd,d/cd,spec.baseCost+(spec.upgradeCost[ti] or 0)),1,0.8,0.3) end
                 elseif spec.aura then for ti=1,3 do GameTooltip:AddLine(string.format("T%d: Rng:%d +%d%% dmg +%d%% spd +%d%% rng (%dg)",ti,TD.TS(spec,"range",ti),TD.TS(spec,"auraDmg",ti)*100,TD.TS(spec,"auraSpd",ti)*100,(TD.TS(spec,"auraRng",ti) or 0)*100,spec.baseCost+(spec.upgradeCost[ti] or 0)),1,0.9,0.4) end
                     GameTooltip:AddLine("Buffed towers glow gold",0.7,0.7,0.4)
-                else for ti=1,3 do GameTooltip:AddLine(string.format("T%d: %d dmg, %d rng, %.1fs spd (%dg)",ti,TD.TS(spec,"damage",ti),TD.TS(spec,"range",ti),TD.TS(spec,"cooldown",ti),spec.baseCost+(spec.upgradeCost[ti] or 0)),1,1,1) end end
+                else for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg, %d rng, %.1fs  %.1f DPS (%dg)",ti,d,TD.TS(spec,"range",ti),cd,d/cd,spec.baseCost+(spec.upgradeCost[ti] or 0)),1,1,1) end end
                 if TD.TS(spec,"splash",1)>0 then GameTooltip:AddLine(string.format("Splash: %d/%d/%d radius",TD.TS(spec,"splash",1),TD.TS(spec,"splash",2),TD.TS(spec,"splash",3)),1,0.5,0.2) end
                 if TD.TS(spec,"slowPct",1)>0 then GameTooltip:AddLine(string.format("Slow: %d%%/%d%%/%d%% for %.1f/%.1f/%.1fs",TD.TS(spec,"slowPct",1)*100,TD.TS(spec,"slowPct",2)*100,TD.TS(spec,"slowPct",3)*100,TD.TS(spec,"slowDur",1),TD.TS(spec,"slowDur",2),TD.TS(spec,"slowDur",3)),0.4,0.7,1) end
                 if TD.TS(spec,"dot",1)>0 then GameTooltip:AddLine(string.format("DoT: %d/%d/%d dps for 3s",TD.TS(spec,"dot",1),TD.TS(spec,"dot",2),TD.TS(spec,"dot",3)),0.7,0.3,0.5) end
@@ -279,7 +281,11 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
     TD.ui.sendBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.sendBtn:SetSize(pw,26); TD.ui.sendBtn:SetPoint("LEFT",sFrame,"LEFT",0,0)
     TD.ui.sendBtn:SetScript("OnClick",function() local g=TD.game; if g.state==TD.S_IDLE or g.state==TD.S_BREAK then TD.StartWave() end end)
     TD.ui.pauseBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.pauseBtn:SetSize(50,26); TD.ui.pauseBtn:SetPoint("LEFT",sFrame,"LEFT",0,0); TD.ui.pauseBtn:SetText("||")
-    TD.ui.pauseBtn:SetScript("OnClick",function() TD.game.speed=0; TD.game.tracking.neverPaused=false; TD.UpdateSpeedBtns() end)
+    TD.ui.pauseBtn:SetScript("OnClick",function() TD.game.speed=0
+        if TD.game.tracking.neverPaused then TD.game.tracking.neverPaused=false
+            local md=TD.game.currentMap; if md and md.challenges then for _,ch in ipairs(md.challenges) do
+                if ch.type=="speedrun" and not TD.IsChallengeComplete(ch.id) then DEFAULT_CHAT_FRAME:AddMessage("|cffcc4444[TD]|r Speed Run challenge failed! You paused."); break end end end end
+        TD.UpdateSpeedBtns(); TD.UpdateHUD() end)
     TD.ui.playBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.playBtn:SetSize(50,26); TD.ui.playBtn:SetPoint("LEFT",TD.ui.pauseBtn,"RIGHT",4,0); TD.ui.playBtn:SetText(">")
     TD.ui.playBtn:SetScript("OnClick",function() TD.game.speed=1; TD.UpdateSpeedBtns() end)
     TD.ui.ffBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.ffBtn:SetSize(60,26); TD.ui.ffBtn:SetPoint("LEFT",TD.ui.playBtn,"RIGHT",4,0); TD.ui.ffBtn:SetText(">>")
@@ -311,8 +317,8 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
     TD.ui.pvLines={}; for i=1,5 do local ln=TD.Lbl(pvf,11,0.8,0.75,0.6); ln:SetPoint("TOPLEFT",pvf,"TOPLEFT",8,-24-(i-1)*16); ln:SetWidth(pw-20); ln:SetJustifyH("LEFT"); TD.ui.pvLines[i]=ln end
     -- Upgrade popup with parchment bg
     local uf=CreateFrame("Frame",nil,ga); uf:SetSize(220,135); uf:SetFrameStrata("DIALOG")
-    uf:SetBackdrop({bgFile=PARCHMENT2,edgeFile=GOLDBDR,edgeSize=24,tile=false,insets={left=6,right=6,top=6,bottom=6}})
-    uf:SetBackdropColor(1,1,1,1); uf:SetBackdropBorderColor(1,1,1,1); uf:Hide(); uf:EnableMouse(true)
+    uf:SetBackdrop({bgFile=DIALOGBG,edgeFile=GOLDBDR,edgeSize=24,tile=true,tileSize=32,insets={left=6,right=6,top=6,bottom=6}})
+    uf:SetBackdropColor(0.15,0.12,0.1,0.95); uf:SetBackdropBorderColor(1,0.85,0.4,1); uf:Hide(); uf:EnableMouse(true)
     uf.titleL=TD.Lbl(uf,16,0.8,0.6,0.2); uf.titleL:SetPoint("TOP",0,-12)
     uf.infoL=TD.Lbl(uf,11,0.6,0.5,0.3); uf.infoL:SetPoint("TOP",0,-32); uf.infoL:SetWidth(200)
     uf.upBtn=CreateFrame("Button",nil,uf,"UIPanelButtonTemplate"); uf.upBtn:SetSize(150,24); uf.upBtn:SetPoint("BOTTOM",0,36)
@@ -338,9 +344,9 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
         btn:SetScript("OnClick",function() local g=TD.game; if g.state==TD.S_OVER or g.state==TD.S_WIN then return end; g.sellMode=false; TD.HideUpgrade()
             if g.selectedTower==i then g.selectedTower=nil else g.selectedTower=i end; TD.UpdateTowerBtns() end)
         btn:SetScript("OnEnter",function(self) GameTooltip:SetOwner(self,"ANCHOR_LEFT"); GameTooltip:AddLine(spec.name,spec.color[1],spec.color[2],spec.color[3]); GameTooltip:AddLine(spec.desc,0.9,0.85,0.75)
-            if spec.pulse then for ti=1,3 do GameTooltip:AddLine(string.format("T%d: %d dmg ALL in %d / %.1fs",ti,TD.TS(spec,"damage",ti),TD.TS(spec,"range",ti),TD.TS(spec,"cooldown",ti)),1,0.8,0.3) end
+            if spec.pulse then for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg ALL in %d / %.1fs (%.1f DPS)",ti,d,TD.TS(spec,"range",ti),cd,d/cd),1,0.8,0.3) end
             elseif spec.aura then for ti=1,3 do GameTooltip:AddLine(string.format("T%d: Rng:%d +%d%% dmg +%d%% spd",ti,TD.TS(spec,"range",ti),TD.TS(spec,"auraDmg",ti)*100,TD.TS(spec,"auraSpd",ti)*100),1,0.9,0.4) end; GameTooltip:AddLine("Buffed towers glow gold",0.7,0.7,0.4)
-            else for ti=1,3 do GameTooltip:AddLine(string.format("T%d: %d dmg %d rng %.1fs",ti,TD.TS(spec,"damage",ti),TD.TS(spec,"range",ti),TD.TS(spec,"cooldown",ti)),1,1,1) end end
+            else for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg %d rng %.1fs (%.1f DPS)",ti,d,TD.TS(spec,"range",ti),cd,d/cd),1,1,1) end end
             if TD.TS(spec,"splash",1)>0 then GameTooltip:AddLine("Splash AoE",1,0.5,0.2) end; if TD.TS(spec,"slowPct",1)>0 then GameTooltip:AddLine("Slows enemies",0.4,0.7,1) end
             if TD.TS(spec,"dot",1)>0 then GameTooltip:AddLine("DoT effect",0.7,0.3,0.5) end; GameTooltip:Show() end)
         btn:SetScript("OnLeave",function() GameTooltip:Hide() end); TD.ui.towerBtns[i]=btn end
@@ -359,9 +365,9 @@ function TD.ShowUpgrade(tower)
     local uf=TD.frames.upgradeFrame; local spec=TD.game.activeSpecs[tower.specIdx]; local t=tower.tier; local st=TD.game.equippedStats
     local dmg,rng,cd=TD.TowerEffective(tower)
     uf.titleL:SetText(spec.name.." T"..t); local info
-    if spec.pulse then info=string.format("Pulse %d ALL | Rng:%d | %.2fs",dmg,rng,cd)
+    if spec.pulse then info=string.format("Pulse %d ALL | Rng:%d | %.2fs\nDPS: %.1f",dmg,rng,cd,dmg/cd)
     elseif spec.aura then info=string.format("Aura Rng:%d\n+%d%% dmg +%d%% spd",rng,TD.TS(spec,"auraDmg",t)*100,TD.TS(spec,"auraSpd",t)*100)
-    else info=string.format("Dmg:%d  Rng:%d  Spd:%.2fs",dmg,rng,cd) end
+    else info=string.format("Dmg:%d  Rng:%d  Spd:%.2fs\nDPS: %.1f",dmg,rng,cd,dmg/cd) end
     local boon=TD.currentBoonGrid[tower.col..","..tower.row]; if boon then info=info.."\n|cffffd700"..TD.BOON_DEFS[boon].name.."|r" end
     -- Show paladin buff if any
     local pD,pS,pR=TD.GetPaladinBuff(tower); if pD>0 or pS>0 then info=info.."\n|cffffff88Paladin: +"..(math.floor(pD*100)).."%dmg +"..(math.floor(pS*100)).."%spd|r" end
@@ -456,7 +462,8 @@ function TD.PlaceTower(specIdx,col,row)
     local spec=TD.game.activeSpecs[specIdx]; local cx,cy=TD.CC(col,row)
     local tf=CreateFrame("Button",nil,TD.frames.gameArea); tf:SetSize(C-6,C-6); tf:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",cx,-cy); tf:SetFrameLevel(TD.frames.gameArea:GetFrameLevel()+5)
     TD.Tex(tf,"BACKGROUND",spec.color[1],spec.color[2],spec.color[3],0.75):SetAllPoints()
-    local tl=TD.Lbl(tf,18,1,1,1); tl:SetPoint("CENTER",0,4); tl:SetText(spec.letter)
+    local classIcon=tf:CreateTexture(nil,"ARTWORK"); classIcon:SetSize(C-14,C-14); classIcon:SetPoint("CENTER",0,3)
+    classIcon:SetTexture(TD.CLASS_ICONS[spec.family] or TD.CLASS_ICONS.paladin); classIcon:SetAlpha(0.85)
     tf.tierL=TD.Lbl(tf,11,0.9,0.85,0.5); tf.tierL:SetPoint("BOTTOM",0,2); tf.tierL:SetText("T1")
     local boon=TD.currentBoonGrid[col..","..row]
     if boon then local bd=TD.BOON_DEFS[boon]; local bc=TD.Lbl(tf,10,bd.color[1],bd.color[2],bd.color[3]); bc:SetPoint("TOPRIGHT",-2,-2); bc:SetText(bd.char) end
