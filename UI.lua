@@ -386,9 +386,9 @@ function TD.ShowUpgrade(tower)
         uf.upBtn:SetScript("OnClick",function() if TD.game.gold>=cost then TD.game.gold=TD.game.gold-cost; TD.game.tracking.goldSpent=TD.game.tracking.goldSpent+cost
             tower.tier=t+1; tower.cooldownTimer=0; tower.frame.tierL:SetText("T"..tower.tier); TD.ShowUpgrade(tower); TD.UpdateHUD() end end)
         uf.autoBtn:Show(); uf.autoBtn:SetText(tower.autoUpgrade and "|cff33cc33Auto Upgrade ON|r" or "Auto Upgrade")
-        uf.autoBtn:SetScript("OnClick",function() tower.autoUpgrade=not tower.autoUpgrade
-            if not TD.game.autoUpgradeSpecs then TD.game.autoUpgradeSpecs={} end
-            TD.game.autoUpgradeSpecs[tower.specIdx]=tower.autoUpgrade or nil; TD.ShowUpgrade(tower) end)
+        uf.autoBtn:SetScript("OnClick",function() local on=not tower.autoUpgrade
+            for _,tw in ipairs(TD.game.towers) do if tw~=tower then tw.autoUpgrade=false end end
+            tower.autoUpgrade=on; TD.ShowUpgrade(tower) end)
         uf:SetHeight(160) else uf.upBtn:Hide(); uf.autoBtn:Hide(); uf:SetHeight(110) end
     uf.slBtn:SetText("Sell ("..TD.SellValue(tower)..TD.GOLD_ICON..")"); uf.slBtn:SetScript("OnClick",function() TD.SellTower(tower); uf:Hide() end)
     uf:ClearAllPoints(); uf:SetPoint("BOTTOM",tower.frame,"TOP",0,8); uf:Show(); TD.activeTowerPanel=tower end
@@ -484,8 +484,7 @@ function TD.PlaceTower(specIdx,col,row)
     tf.tierL=TD.Lbl(tf,11,0.9,0.85,0.5); tf.tierL:SetPoint("BOTTOM",0,2); tf.tierL:SetText("T1")
     local boon=TD.currentBoonGrid[col..","..row]
     if boon then local bd=TD.BOON_DEFS[boon]; local bc=TD.Lbl(tf,10,bd.color[1],bd.color[2],bd.color[3]); bc:SetPoint("TOPRIGHT",-2,-2); bc:SetText(bd.char) end
-    local autoUp=(TD.game.autoUpgradeSpecs and TD.game.autoUpgradeSpecs[specIdx]) or false
-    local tower={specIdx=specIdx,col=col,row=row,cx=cx,cy=cy,tier=1,cooldownTimer=0,frame=tf,autoUpgrade=autoUp}
+    local tower={specIdx=specIdx,col=col,row=row,cx=cx,cy=cy,tier=1,cooldownTimer=0,frame=tf}
     tf:SetScript("OnClick",function() local g=TD.game; if g.state==TD.S_OVER or g.state==TD.S_WIN then return end
         if g.sellMode then TD.SellTower(tower) else g.selectedTower=nil; TD.UpdateTowerBtns(); TD.ShowUpgrade(tower)
             local rng=TD.TS(spec,"range",tower.tier); local st=g.equippedStats; if st.rangeMult then rng=rng*st.rangeMult end
