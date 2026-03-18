@@ -326,7 +326,8 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
     uf:SetBackdropColor(0.15,0.12,0.1,0.95); uf:SetBackdropBorderColor(1,0.85,0.4,1); uf:Hide(); uf:EnableMouse(true)
     uf.titleL=TD.Lbl(uf,16,0.8,0.6,0.2); uf.titleL:SetPoint("TOP",0,-12)
     uf.infoL=TD.Lbl(uf,11,0.6,0.5,0.3); uf.infoL:SetPoint("TOP",0,-32); uf.infoL:SetWidth(200)
-    uf.upBtn=CreateFrame("Button",nil,uf,"UIPanelButtonTemplate"); uf.upBtn:SetSize(150,24); uf.upBtn:SetPoint("BOTTOM",0,36)
+    uf.upBtn=CreateFrame("Button",nil,uf,"UIPanelButtonTemplate"); uf.upBtn:SetSize(150,24); uf.upBtn:SetPoint("BOTTOM",0,60)
+    uf.autoBtn=CreateFrame("Button",nil,uf,"UIPanelButtonTemplate"); uf.autoBtn:SetSize(150,24); uf.autoBtn:SetPoint("BOTTOM",0,34)
     uf.slBtn=CreateFrame("Button",nil,uf,"UIPanelButtonTemplate"); uf.slBtn:SetSize(150,24); uf.slBtn:SetPoint("BOTTOM",0,8); uf.slBtn:SetText("Sell"); TD.frames.upgradeFrame=uf end
 
 function TD.UpdateSpeedBtns() local s=TD.game.speed
@@ -386,7 +387,10 @@ function TD.ShowUpgrade(tower)
         uf.upBtn:SetText("T"..(t+1).." ("..cost..TD.GOLD_ICON..")"); uf.upBtn:Show()
         uf.upBtn:SetScript("OnClick",function() if TD.game.gold>=cost then TD.game.gold=TD.game.gold-cost; TD.game.tracking.goldSpent=TD.game.tracking.goldSpent+cost
             tower.tier=t+1; tower.cooldownTimer=0; tower.frame.tierL:SetText("T"..tower.tier); TD.ShowUpgrade(tower); TD.UpdateHUD() end end)
-        uf:SetHeight(135) else uf.upBtn:Hide(); uf:SetHeight(110) end
+        uf.autoBtn:Show(); uf.autoBtn:SetText(tower.autoUpgrade and "|cff33cc33Auto Upgrade ON|r" or "Auto Upgrade")
+        uf.autoBtn:SetScript("OnClick",function() local on=not tower.autoUpgrade
+            for _,tw in ipairs(TD.game.towers) do tw.autoUpgrade=on end; TD.ShowUpgrade(tower) end)
+        uf:SetHeight(160) else uf.upBtn:Hide(); uf.autoBtn:Hide(); uf:SetHeight(110) end
     uf.slBtn:SetText("Sell ("..TD.SellValue(tower)..TD.GOLD_ICON..")"); uf.slBtn:SetScript("OnClick",function() TD.SellTower(tower); uf:Hide() end)
     uf:ClearAllPoints(); uf:SetPoint("BOTTOM",tower.frame,"TOP",0,8); uf:Show(); TD.activeTowerPanel=tower end
 

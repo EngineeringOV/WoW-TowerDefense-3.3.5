@@ -328,17 +328,25 @@ function TD.CheckWaveComplete() local g=TD.game; if g.state~=TD.S_PLAY then retu
         if g.autoWave then TD.StartWave() else g.speed=0 end; TD.UpdateHUD()
     end end
 
+function TD.AutoUpgradeTowers() local g=TD.game; local st=g.equippedStats; local upgraded=false
+    for _,tw in ipairs(g.towers) do if tw.autoUpgrade and tw.tier<3 then
+        local spec=g.activeSpecs[tw.specIdx]; local cost=spec.upgradeCost[tw.tier+1]
+        if st.upgradeCostMult then cost=math.floor(cost*st.upgradeCostMult) end
+        if g.gold>=cost then g.gold=g.gold-cost; g.tracking.goldSpent=g.tracking.goldSpent+cost
+            tw.tier=tw.tier+1; tw.cooldownTimer=0; tw.frame.tierL:SetText("T"..tw.tier); upgraded=true end end end
+    if upgraded and TD.activeTowerPanel then TD.ShowUpgrade(TD.activeTowerPanel) end end
+
 -- Main loop
 local uiAcc=0
 local function OnUpdate(self,elapsed)
     if not TD.frames.main:IsShown() then return end; local g=TD.game
     if g.state==TD.S_MENU or g.state==TD.S_IDLE or g.state==TD.S_EQUIP then return end
     if g.state==TD.S_OVER or g.state==TD.S_WIN then return end
-    if g.state==TD.S_BREAK then uiAcc=uiAcc+elapsed; if uiAcc>=0.3 then uiAcc=0; TD.UpdateHUD() end; return end
+    if g.state==TD.S_BREAK then uiAcc=uiAcc+elapsed; if uiAcc>=0.3 then uiAcc=0; TD.AutoUpgradeTowers(); TD.UpdateHUD() end; return end
     local dt=elapsed*(g.speed or 1); if dt<=0 then uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.UpdateHUD() end; return end
     TD.UpdateSpawning(dt); TD.UpdateEnemies(dt); TD.UpdateHealers(dt); TD.UpdateTowers(dt); TD.UpdateProjectiles(dt)
     TD.UpdateCombatText(dt); TD.UpdateAuraVisuals(elapsed); TD.CheckWaveComplete()
-    uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.UpdateHUD() end end
+    uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.AutoUpgradeTowers(); TD.UpdateHUD() end end
 
 local function Init() TD.EnsureSaved(); TD.CreateMain(); TD.CreateMenu(); TD.CreateGameScreen()
     TD.frames.main:SetScript("OnUpdate",OnUpdate); TD.frames.main:Hide(); TD.RefreshMenu(); TD.game.state=TD.S_MENU
