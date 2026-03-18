@@ -298,7 +298,7 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
     TD.ui.autoBtn:SetScript("OnClick",function() TD.game.autoWave=not TD.game.autoWave; TD.UpdateHUD() end)
     TD.ui.sellBtn=CreateFrame("Button",nil,panel,"UIPanelButtonTemplate"); TD.ui.sellBtn:SetSize(pw,24)
     TD.ui.sellBtn:SetScript("OnClick",function() local g=TD.game; if g.state==TD.S_OVER or g.state==TD.S_WIN then return end; g.selectedTower=nil; g.sellMode=not g.sellMode; TD.HideUpgrade(); TD.UpdateTowerBtns(); TD.UpdateHUD() end)
-    TD.ui.menuBtn=CreateFrame("Button",nil,panel,"UIPanelButtonTemplate"); TD.ui.menuBtn:SetSize(pw,24); TD.ui.menuBtn:SetText("Back to Menu"); TD.ui.menuBtn:SetScript("OnClick",function() TD.ShowMenu() end)
+    TD.ui.menuBtn=CreateFrame("Button",nil,panel,"UIPanelButtonTemplate"); TD.ui.menuBtn:SetSize(80,20); TD.ui.menuBtn:SetText("Menu"); TD.ui.menuBtn:SetPoint("TOPLEFT",panel,"TOPLEFT",6,-6); TD.ui.menuBtn:SetScript("OnClick",function() TD.ShowMenu() end)
     -- Status label with tooltip on hover
     TD.ui.statusFrame=CreateFrame("Frame",nil,panel); TD.ui.statusFrame:SetSize(pw,20)
     TD.ui.statusL=TD.Lbl(TD.ui.statusFrame,13,0.9,0.3,0.2); TD.ui.statusL:SetWidth(pw); TD.ui.statusL:SetAllPoints()
@@ -362,8 +362,7 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
     TD.ui.speedFrame:ClearAllPoints(); TD.ui.speedFrame:SetPoint("TOP",panel,"TOP",0,yBase)
     TD.ui.autoBtn:ClearAllPoints(); TD.ui.autoBtn:SetPoint("TOP",panel,"TOP",0,yBase-30)
     TD.ui.sellBtn:ClearAllPoints(); TD.ui.sellBtn:SetPoint("TOP",panel,"TOP",0,yBase-56)
-    TD.ui.menuBtn:ClearAllPoints(); TD.ui.menuBtn:SetPoint("TOP",panel,"TOP",0,yBase-82)
-    TD.ui.statusFrame:ClearAllPoints(); TD.ui.statusFrame:SetPoint("TOP",panel,"TOP",0,yBase-110) end
+    TD.ui.statusFrame:ClearAllPoints(); TD.ui.statusFrame:SetPoint("TOP",panel,"TOP",0,yBase-82) end
 
 function TD.UpdateTowerBtns() for i,btn in ipairs(TD.ui.towerBtns) do local spec=btn.spec
     if TD.game.selectedTower==i then btn:SetBackdropBorderColor(1,0.85,0.2,1); btn:SetBackdropColor(spec.color[1]*0.1,spec.color[2]*0.1,spec.color[3]*0.1,0.95); if btn.selGlow then btn.selGlow:Show() end
