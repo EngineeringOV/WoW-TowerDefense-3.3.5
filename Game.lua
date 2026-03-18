@@ -53,6 +53,8 @@ local function GetEF()
     ef.immBar=TD.Tex(ef,"OVERLAY",0.8,0.2,0.2,0); ef.immBar:SetHeight(3); ef.immBar:SetPoint("TOPLEFT",ef,"BOTTOMLEFT",0,-1); ef.immBar:SetPoint("TOPRIGHT",ef,"BOTTOMRIGHT",0,-1)
     -- Flash overlay for pulse/splash hit
     ef.flash=TD.Tex(ef,"OVERLAY",1,1,1,0); ef.flash:SetAllPoints()
+    -- HP number text (for "numbers" health display mode)
+    ef.hpText=TD.Lbl(ef,8,1,1,1); ef.hpText:SetPoint("TOP",ef,"BOTTOM",0,-1); ef.hpText:Hide()
     TD.frames.enemyPool[#TD.frames.enemyPool+1]=ef; return ef end
 
 local function DeepCopyAbilities(abilities) local out={}; for _,a in ipairs(abilities) do local copy={}; for k,v in pairs(a) do copy[k]=v end; out[#out+1]=copy end; return out end
@@ -93,6 +95,21 @@ function TD.SpawnMapBoss(bossId,hpScale)
 function TD.FlashEnemy(en,r,g,b)
     if not en.frame or not en.frame.flash then return end
     en.frame.flash:SetVertexColor(r or 1,g or 1,b or 1,0.7); en.flashTimer=0.15 end
+
+-- Combat text (floating damage numbers)
+TD.frames.combatTextPool={}; TD.combatTexts={}
+function TD.SpawnCombatText(x,y,text,r,g,b)
+    if not TD.GetSetting("combatText") then return end
+    local fs; for _,ct in ipairs(TD.frames.combatTextPool) do if not ct:IsShown() then fs=ct; break end end
+    if not fs then fs=TD.Lbl(TD.frames.gameArea,11,1,1,1); fs:SetDrawLayer("OVERLAY",7); TD.frames.combatTextPool[#TD.frames.combatTextPool+1]=fs end
+    fs:SetTextColor(r or 1,g or 1,b or 1,1); fs:SetAlpha(1); fs:SetText(text)
+    fs:ClearAllPoints(); fs:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",x,-y); fs:Show()
+    TD.combatTexts[#TD.combatTexts+1]={fs=fs,x=x,y=y,age=0,maxAge=0.7} end
+function TD.UpdateCombatText(elapsed) local rem={}
+    for i,ct in ipairs(TD.combatTexts) do ct.age=ct.age+elapsed
+        if ct.age>=ct.maxAge then ct.fs:Hide(); rem[#rem+1]=i
+        else ct.y=ct.y-35*elapsed; ct.fs:ClearAllPoints(); ct.fs:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",ct.x,-ct.y); ct.fs:SetAlpha(1-(ct.age/ct.maxAge)) end
+    end; for i=#rem,1,-1 do table.remove(TD.combatTexts,rem[i]) end end
 
 -- Boss abilities (unchanged logic)
 function TD.UpdateBossAbilities(en,elapsed)
@@ -185,6 +202,7 @@ function TD.DamageEnemy(en,damage,tower,isSplash)
     if st.critChance and math.random()<st.critChance then damage=math.floor(damage*(st.critMult or 1.5)); TD.FlashEnemy(en,1,1,0.3) end
     if st.doubleHitChance and math.random()<st.doubleHitChance then damage=damage*2; TD.FlashEnemy(en,0.4,0.8,1) end
     en.hp=en.hp-damage; if en.isBoss then TD.BossOnHit(en) end
+    TD.SpawnCombatText(en.x+math.random(-8,8),en.y-6,tostring(damage),1,0.9,0.2)
     if en.hp<=0 then en.alive=false; en.frame:Hide()
         local rw=en.reward; if st.goldMult then rw=math.floor(rw*st.goldMult) end
         if st.flatBounty then rw=rw+st.flatBounty end
@@ -233,8 +251,14 @@ function TD.UpdateEnemies(elapsed) local g=TD.game; local rem={}
                 else local dx=tgt.x-e.x; local dy=tgt.y-e.y; local dist=TD.Dist(e.x,e.y,tgt.x,tgt.y); local mv=e.speed*elapsed
                     if mv>=dist then e.x=tgt.x; e.y=tgt.y; e.pathIndex=e.pathIndex+1 else e.x=e.x+(dx/dist)*mv; e.y=e.y+(dy/dist)*mv end
                     e.frame:ClearAllPoints(); e.frame:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",e.x,-e.y)
-                    local pct=e.hp/e.maxHP; local bw=e.frame.hpBg:GetWidth()*pct; if bw<1 then bw=1 end; e.frame.hpBar:SetWidth(bw)
-                    if pct>0.5 then e.frame.hpBar:SetVertexColor(0,1,0,1) elseif pct>0.25 then e.frame.hpBar:SetVertexColor(1,1,0,1) else e.frame.hpBar:SetVertexColor(1,0,0,1) end
+                    local pct=e.hp/e.maxHP; local hm=TD.GetSetting("healthDisplay")
+                    if hm=="bars" then e.frame.hpBg:Show(); e.frame.hpBar:Show(); if e.frame.hpText then e.frame.hpText:Hide() end
+                        local bw=e.frame.hpBg:GetWidth()*pct; if bw<1 then bw=1 end; e.frame.hpBar:SetWidth(bw)
+                        if pct>0.5 then e.frame.hpBar:SetVertexColor(0,1,0,1) elseif pct>0.25 then e.frame.hpBar:SetVertexColor(1,1,0,1) else e.frame.hpBar:SetVertexColor(1,0,0,1) end
+                    elseif hm=="numbers" then e.frame.hpBg:Hide(); e.frame.hpBar:Hide()
+                        if e.frame.hpText then e.frame.hpText:SetText(math.floor(e.hp)); e.frame.hpText:Show()
+                            if pct>0.5 then e.frame.hpText:SetTextColor(0,1,0) elseif pct>0.25 then e.frame.hpText:SetTextColor(1,1,0) else e.frame.hpText:SetTextColor(1,0,0) end end
+                    else e.frame.hpBg:Hide(); e.frame.hpBar:Hide(); if e.frame.hpText then e.frame.hpText:Hide() end end
                 end end end
     end; for i=#rem,1,-1 do table.remove(g.enemies,rem[i]) end end
 
@@ -313,7 +337,7 @@ local function OnUpdate(self,elapsed)
     if g.state==TD.S_BREAK then uiAcc=uiAcc+elapsed; if uiAcc>=0.3 then uiAcc=0; TD.UpdateHUD() end; return end
     local dt=elapsed*(g.speed or 1); if dt<=0 then uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.UpdateHUD() end; return end
     TD.UpdateSpawning(dt); TD.UpdateEnemies(dt); TD.UpdateHealers(dt); TD.UpdateTowers(dt); TD.UpdateProjectiles(dt)
-    TD.UpdateAuraVisuals(elapsed); TD.CheckWaveComplete()
+    TD.UpdateCombatText(dt); TD.UpdateAuraVisuals(elapsed); TD.CheckWaveComplete()
     uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.UpdateHUD() end end
 
 local function Init() TD.EnsureSaved(); TD.CreateMain(); TD.CreateMenu(); TD.CreateGameScreen()

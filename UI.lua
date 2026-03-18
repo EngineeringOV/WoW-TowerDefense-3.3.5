@@ -72,6 +72,8 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
     menuScroll:EnableMouseWheel(true); menuScroll:SetScript("OnMouseWheel",function(self,delta) local cur=menuBar:GetValue(); if delta>0 then menuBar:SetValue(math.max(0,cur-60)) else local _,mx=menuBar:GetMinMaxValues(); menuBar:SetValue(math.min(mx,cur+60)) end end)
     TD.ui.menuScroll=menuScroll; TD.ui.menuBar=menuBar; TD.ui.menuChild=menuChild; TD.ui.menuCardSize=cs; TD.ui.menuGridLeft=gridLeft; TD.ui.menuPR=pR; TD.ui.menuGX=gX; TD.ui.menuGY=gY; TD.ui.menuVisH=visH
     local leg=TD.Lbl(m,12,0.7,0.6,0.45); leg:SetPoint("BOTTOMLEFT",m,"BOTTOMLEFT",8,8); leg:SetText("Hover cards for details")
+    local sb=CreateFrame("Button",nil,m,"UIPanelButtonTemplate"); sb:SetSize(100,28); sb:SetPoint("BOTTOM",m,"BOTTOM",0,8)
+    sb:SetText("Settings"); sb:SetScript("OnClick",function() TD.ShowSettings() end)
     local eb=CreateFrame("Button",nil,m,"UIPanelButtonTemplate"); eb:SetSize(140,28); eb:SetPoint("BOTTOMRIGHT",m,"BOTTOMRIGHT",-8,8)
     eb:SetText("Equipment"); eb:SetScript("OnClick",function() TD.game.pendingMapIndex=nil; TD.ShowEquip() end) end
 
@@ -220,7 +222,41 @@ function TD.RefreshEquip() TD.EnsureSaved()
         if setTxt~="" then setTxt=setTxt.."  " end; setTxt=setTxt.."|cff"..HexC(set.color)..set.name.."|r: "..set.desc end end
     TD.ui.setBonusL:SetText(setTxt) end
 
-function TD.ShowEquip() TD.frames.menuFrame:Hide(); if TD.frames.gameFrame then TD.frames.gameFrame:Hide() end; TD.CreateEquip(); TD.RefreshEquip(); TD.frames.equipFrame:Show(); TD.game.state=TD.S_EQUIP end
+function TD.ShowEquip() TD.frames.menuFrame:Hide(); if TD.frames.gameFrame then TD.frames.gameFrame:Hide() end; if TD.frames.settingsFrame then TD.frames.settingsFrame:Hide() end
+    TD.CreateEquip(); TD.RefreshEquip(); TD.frames.equipFrame:Show(); TD.game.state=TD.S_EQUIP end
+
+-- ============================================================
+-- SETTINGS
+-- ============================================================
+function TD.CreateSettings() if TD.frames.settingsFrame then return end
+    local sf=CreateFrame("Frame",nil,TD.frames.main); sf:SetPoint("TOPLEFT",14,-14); sf:SetPoint("BOTTOMRIGHT",-14,14); sf:Hide(); TD.frames.settingsFrame=sf
+    local ti=TD.Lbl(sf,22,0.85,0.7,0.35); ti:SetPoint("TOP",0,-20); ti:SetText("Settings")
+    local pw=300; local startY=-60
+    -- Combat Text toggle
+    local ctL=TD.Lbl(sf,14,0.9,0.85,0.7); ctL:SetPoint("TOPLEFT",sf,"TOP",-pw/2,startY); ctL:SetText("Combat Text")
+    local ctD=TD.Lbl(sf,11,0.7,0.6,0.45); ctD:SetPoint("TOPLEFT",sf,"TOP",-pw/2,startY-18); ctD:SetWidth(pw-110); ctD:SetJustifyH("LEFT")
+    ctD:SetText("Show floating damage numbers on enemies")
+    TD.ui.ctBtn=CreateFrame("Button",nil,sf,"UIPanelButtonTemplate"); TD.ui.ctBtn:SetSize(90,26); TD.ui.ctBtn:SetPoint("TOPRIGHT",sf,"TOP",pw/2,startY)
+    TD.ui.ctBtn:SetScript("OnClick",function() TD.SetSetting("combatText",not TD.GetSetting("combatText")); TD.RefreshSettings() end)
+    -- Health Display toggle
+    local hdL=TD.Lbl(sf,14,0.9,0.85,0.7); hdL:SetPoint("TOPLEFT",sf,"TOP",-pw/2,startY-50); hdL:SetText("Health Display")
+    local hdD=TD.Lbl(sf,11,0.7,0.6,0.45); hdD:SetPoint("TOPLEFT",sf,"TOP",-pw/2,startY-68); hdD:SetWidth(pw-110); hdD:SetJustifyH("LEFT")
+    hdD:SetText("Toggle enemy health bars, numbers, or none")
+    TD.ui.hdBtn=CreateFrame("Button",nil,sf,"UIPanelButtonTemplate"); TD.ui.hdBtn:SetSize(90,26); TD.ui.hdBtn:SetPoint("TOPRIGHT",sf,"TOP",pw/2,startY-50)
+    TD.ui.hdBtn:SetScript("OnClick",function()
+        local cur=TD.GetSetting("healthDisplay"); local nxt={bars="numbers",numbers="none",none="bars"}
+        TD.SetSetting("healthDisplay",nxt[cur] or "bars"); TD.RefreshSettings() end)
+    -- Back button
+    local back=CreateFrame("Button",nil,sf,"UIPanelButtonTemplate"); back:SetSize(130,28); back:SetPoint("BOTTOM",sf,"BOTTOM",0,20)
+    back:SetText("Back"); back:SetScript("OnClick",function() TD.ShowMenu() end) end
+
+function TD.RefreshSettings()
+    local ct=TD.GetSetting("combatText"); TD.ui.ctBtn:SetText(ct and "|cff33cc33ON|r" or "|cffcc3333OFF|r")
+    local hd=TD.GetSetting("healthDisplay"); local hdN={bars="Bars",numbers="Numbers",none="None"}
+    TD.ui.hdBtn:SetText(hdN[hd] or "Bars") end
+
+function TD.ShowSettings() TD.frames.menuFrame:Hide(); if TD.frames.equipFrame then TD.frames.equipFrame:Hide() end; if TD.frames.gameFrame then TD.frames.gameFrame:Hide() end
+    TD.CreateSettings(); TD.RefreshSettings(); TD.frames.settingsFrame:Show() end
 
 -- ============================================================
 -- GAME SCREEN
@@ -265,6 +301,10 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
             GameTooltip:AddLine(immN[g.waveImmunity] or g.waveImmunity,1,0.4,0.4) end
         if info.isBurst then GameTooltip:AddLine("BURST: 2.5x faster spawn rate",1,0.6,0) end; GameTooltip:Show() end)
     TD.ui.statusFrame:SetScript("OnLeave",function() GameTooltip:Hide() end)
+    -- Challenge tracker (above wave preview)
+    local chf=InsetPanel(panel,pw,62); chf:SetPoint("BOTTOMLEFT",panel,"BOTTOMLEFT",6,120)
+    local chTitle=TD.Lbl(chf,11,0.8,0.7,0.4); chTitle:SetPoint("TOPLEFT",6,-4); chTitle:SetText("Challenges")
+    TD.ui.challengeLines={}; for i=1,3 do local cl=TD.Lbl(chf,10,0.8,0.7,0.5); cl:SetPoint("TOPLEFT",chf,"TOPLEFT",8,-18-(i-1)*14); cl:SetWidth(pw-16); cl:SetJustifyH("LEFT"); TD.ui.challengeLines[i]=cl end
     -- Wave preview
     local pvf=InsetPanel(panel,pw,110); pvf:SetPoint("BOTTOMLEFT",panel,"BOTTOMLEFT",6,6)
     local pvTitle=TD.Lbl(pvf,13,0.6,0.75,0.8); pvTitle:SetPoint("TOP",0,-6); pvTitle:SetText("Upcoming Waves")
@@ -393,10 +433,20 @@ function TD.UpdateHUD() local g=TD.game
     elseif g.state==TD.S_OVER then TD.ui.statusL:SetText("|cffee4444Defeated W"..g.wave.."|r")
     elseif g.state==TD.S_WIN then TD.ui.statusL:SetText("|cff33cc33Map Complete!|r") end
     TD.ui.sellBtn:SetText(g.sellMode and "|cffcc3333Sell ON|r" or "Sell Mode")
-    local lines=TD.WavePreview(g.waveList,g.wave,5); for i=1,5 do TD.ui.pvLines[i]:SetText(lines[i] or "") end end
+    local lines=TD.WavePreview(g.waveList,g.wave,5); for i=1,5 do TD.ui.pvLines[i]:SetText(lines[i] or "") end
+    -- Challenge tracker
+    if TD.ui.challengeLines and g.currentMap and g.currentMap.challenges then
+        for i=1,3 do local ch=g.currentMap.challenges[i]; local cl=TD.ui.challengeLines[i]
+            if ch then local cdf=TD.CHALLENGE_DEFS[ch.type]; local done=TD.IsChallengeComplete(ch.id)
+                if done then cl:SetText("|cff44aa44"..cdf.name..": Done|r")
+                else local ok,info=TD.GetChallengeStatus(ch.type)
+                    if ok then cl:SetText("|cff44aa44*|r "..cdf.name..": |cff88cc88"..info.."|r")
+                    else cl:SetText("|cffcc4444x|r "..cdf.name..": |cffcc4444"..info.."|r") end end
+            else cl:SetText("") end end end end
 
 function TD.ShowMenu() TD.HideUpgrade(); TD.game.state=TD.S_MENU
     if TD.frames.gameFrame then TD.frames.gameFrame:Hide() end; if TD.frames.equipFrame then TD.frames.equipFrame:Hide() end
+    if TD.frames.settingsFrame then TD.frames.settingsFrame:Hide() end
     for _,e in ipairs(TD.game.enemies) do if e.frame then e.frame:Hide() end end; for _,p in ipairs(TD.game.projectiles) do if p.frame then p.frame:Hide() end end
     for _,tf in ipairs(TD.frames.towerFrames or {}) do tf:Hide() end; wipe(TD.game.enemies); wipe(TD.game.projectiles); wipe(TD.frames.towerFrames or {})
     if TD.frames.rangeCircle then TD.frames.rangeCircle:Hide() end; TD.RefreshMenu(); TD.frames.menuFrame:Show(); TD.frames.main:Show() end

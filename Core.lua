@@ -10,7 +10,10 @@ function TD.EnsureSaved() local s=TowerDefenseSaved
     if not s.equipped then s.equipped={"spyglass","coinpurse","barricade"} end
     if not s.specs then s.specs={hunter="marksman",mage="frost",warlock="destruction",druid="starfall"} end
     if not s.unlocked then s.unlocked={marksman=true,frost=true,destruction=true,starfall=true} end
-    if not s.challenges then s.challenges={} end end
+    if not s.challenges then s.challenges={} end
+    if not s.settings then s.settings={combatText=false,healthDisplay="bars"} end end
+function TD.GetSetting(k) TD.EnsureSaved(); return TowerDefenseSaved.settings[k] end
+function TD.SetSetting(k,v) TD.EnsureSaved(); TowerDefenseSaved.settings[k]=v end
 
 function TD.Tex(p,l,r,g,b,a) local t=p:CreateTexture(nil,l or "BACKGROUND"); t:SetTexture(TD.SOLID); t:SetVertexColor(r,g,b,a or 1); return t end
 function TD.CirTex(p,l,r,g,b,a) local t=p:CreateTexture(nil,l or "OVERLAY"); t:SetTexture(TD.MINIMAP_CIRCLE); t:SetVertexColor(r,g,b,a or 0.15); return t end
@@ -211,6 +214,16 @@ TD.GIMMICK_INFO={
     ["Final Boss Blitz"]="The final wave. Everything at once.",
     ["BURST"]="2.5x faster spawn rate this wave.",
 }
+
+function TD.GetChallengeStatus(chType)
+    local t=TD.game.tracking
+    if chType=="flawless" then return t.livesLost==0, t.livesLost==0 and "0 lives lost" or t.livesLost.." lives lost"
+    elseif chType=="minimalist" then return t.maxTowers<=6, t.maxTowers.."/6 towers"
+    elseif chType=="nosell" then return t.sellCount==0, t.sellCount==0 and "0 sells" or t.sellCount.." sells"
+    elseif chType=="speedrun" then return t.neverPaused, t.neverPaused and "No pauses" or "Paused"
+    elseif chType=="pauper" then return t.goldSpent<=400, t.goldSpent.."/400g spent"
+    elseif chType=="endurance" then local ok=t.latelivesLost==0; return ok, ok and "0 late losses" or t.latelivesLost.." late losses"
+    end; return true,"" end
 
 TD.game={state=TD.S_MENU,currentMap=nil,gold=0,lives=0,wave=0,totalWaves=0,
     towers={},enemies={},projectiles={},selectedTower=nil,sellMode=false,
