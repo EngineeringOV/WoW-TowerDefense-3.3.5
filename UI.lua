@@ -279,8 +279,6 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
     TD.ui.eqDisp={}; for s=1,3 do local l=TD.Lbl(panel,10,0.7,0.6,0.4); l:SetPoint("TOPLEFT",panel,"TOPLEFT",10,-108-(s-1)*14); l:SetWidth(pw); l:SetJustifyH("LEFT"); TD.ui.eqDisp[s]=l end
     TD.ui.towerBtns={}
     local sFrame=CreateFrame("Frame",nil,panel); sFrame:SetSize(pw,28); TD.ui.speedFrame=sFrame
-    TD.ui.sendBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.sendBtn:SetSize(pw,26); TD.ui.sendBtn:SetPoint("BOTTOMLEFT",sFrame,"TOPLEFT",0,2)
-    TD.ui.sendBtn:SetScript("OnClick",function() local g=TD.game; if g.state==TD.S_IDLE or g.state==TD.S_BREAK then TD.StartWave() end end)
     TD.ui.pauseBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.pauseBtn:SetSize(50,26); TD.ui.pauseBtn:SetPoint("LEFT",sFrame,"LEFT",0,0); TD.ui.pauseBtn:SetText("||")
     TD.ui.pauseBtn:SetScript("OnClick",function() TD.game.speed=0
         if TD.game.tracking.neverPaused then TD.game.tracking.neverPaused=false
@@ -445,13 +443,12 @@ function TD.UpdateHUD() local g=TD.game
     TD.ui.waveL:SetText("Wave: "..g.wave.." / "..g.totalWaves); TD.ui.flavorL:SetText(g.currentMap and g.currentMap.flavor or "")
     for s=1,3 do local eqId=TowerDefenseSaved.equipped[s]; local d=TD.ITEM_DEFS[eqId or ""]; TD.ui.eqDisp[s]:SetText(d and ("|cff"..HexC(d.color)..d.icon.."|r "..d.name) or "") end
     local isBetween=(g.state==TD.S_IDLE or g.state==TD.S_BREAK)
-    local showSend=isBetween and not g.autoWave; local showSpeed=(g.state==TD.S_PLAY or isBetween)
-    if showSend then TD.ui.sendBtn:Show() else TD.ui.sendBtn:Hide() end
+    local showSpeed=(g.state==TD.S_PLAY or isBetween)
     if showSpeed then TD.ui.pauseBtn:Show(); TD.ui.playBtn:Show(); TD.ui.ffBtn:Show(); TD.ui.fffBtn:Show()
     else TD.ui.pauseBtn:Hide(); TD.ui.playBtn:Hide(); TD.ui.ffBtn:Hide(); TD.ui.fffBtn:Hide() end
     TD.ui.autoBtn:SetText(g.autoWave and "|cff33cc33Auto Wave ON|r" or "Auto Wave OFF")
-    if g.state==TD.S_IDLE then TD.ui.sendBtn:SetText("Send Wave 1"); TD.ui.statusL:SetText("")
-    elseif g.state==TD.S_BREAK then TD.ui.sendBtn:SetText("Send Wave "..(g.wave+1)); TD.ui.statusL:SetText("")
+    if g.state==TD.S_IDLE then TD.ui.statusL:SetText("")
+    elseif g.state==TD.S_BREAK then TD.ui.statusL:SetText("")
     elseif g.state==TD.S_PLAY then TD.UpdateSpeedBtns(); local info=g.waveList[g.wave]; local status=(info and info.gimmickTag) or ""
         if g.waveImmunity then local immN={noslow="Slow Immune",nomagic="Magic Immune",nophysic="Phys Immune",nodot="DoT Immune",noaoe="AoE Immune"}
             if status~="" then status=status.." " end; status=status.."|cffee4444"..(immN[g.waveImmunity] or g.waveImmunity).."|r" end; TD.ui.statusL:SetText(status)
