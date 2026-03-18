@@ -20,7 +20,7 @@ function TD.StartMap(mapIndex)
 end
 
 function TD.StartWave()
-    local g=TD.game; g.wave=g.wave+1; g.speed=1
+    local g=TD.game; g.wave=g.wave+1; if g.speed<1 then g.speed=1 end
     if g.wave>g.totalWaves then g.state=TD.S_WIN; TD.SaveMapProgress(g.currentMap.id,g.wave-1,g.totalWaves,g.lives,g.currentMap.startLives)
         TD.CheckChallenges(g.currentMap,g.tracking); TD.UpdateHUD(); return end
     local wi=g.waveList[g.wave]; wipe(g.spawnQueue); g.waveImmunity=wi.immunity
