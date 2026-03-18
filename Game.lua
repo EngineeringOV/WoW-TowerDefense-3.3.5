@@ -326,6 +326,11 @@ local function Init() TD.EnsureSaved(); TD.CreateMain(); TD.CreateMenu(); TD.Cre
         return origRef(link,text,button,chatFrame) end
     DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[Tower Defense]|r v5.1. |cff00ff00/td|r to play. Click gimmick names in chat for info.") end
 SLASH_TOWERDEFENSE1="/td"; SLASH_TOWERDEFENSE2="/towerdefense"
-SlashCmdList["TOWERDEFENSE"]=function(msg) if msg=="reset" then TowerDefenseSaved={}; TD.EnsureSaved(); TD.RefreshMenu(); DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Reset."); return end
+SlashCmdList["TOWERDEFENSE"]=function(msg) if msg=="reset" then TowerDefenseSaved={}; TD.EnsureSaved(); if TD.frames.menuFrame then TD.RefreshMenu() end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r All progress, items, and specs have been reset."); return end
+    if msg=="itsasecret" then TD.EnsureSaved()
+        for _,m in ipairs(TD.MAPS) do if not m.secret then TowerDefenseSaved.maps[m.id]={bestWave=m.totalWaves,completed=true,stars=1} end end
+        if TD.frames.menuFrame then TD.RefreshMenu() end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r |cffff00ffSecret levels unlocked!|r The timeways are open..."); return end
     if not TD.frames.main then return end; if TD.frames.main:IsShown() then TD.frames.main:Hide() else TD.ShowMenu() end end
 local loader=CreateFrame("Frame"); loader:RegisterEvent("PLAYER_LOGIN"); loader:SetScript("OnEvent",function(self) Init(); self:UnregisterAllEvents() end)

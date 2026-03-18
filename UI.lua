@@ -166,8 +166,8 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
             sb:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
             sb:SetBackdropColor(spec.color[1]*0.2,spec.color[2]*0.2,spec.color[3]*0.2,0.9); sb:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8)
             -- Class icon
-            local icon=sb:CreateTexture(nil,"ARTWORK"); icon:SetSize(iconSz,iconSz); icon:SetPoint("LEFT",4,0); icon:SetTexture(TD.CLASS_ICON)
-            local coords=TD.CLASS_COORDS[spec.family] or TD.CLASS_COORDS.paladin; icon:SetTexCoord(coords[1],coords[2],coords[3],coords[4])
+            local icon=sb:CreateTexture(nil,"ARTWORK"); icon:SetSize(iconSz,iconSz); icon:SetPoint("LEFT",4,0)
+            icon:SetTexture(TD.CLASS_ICONS[spec.family] or TD.CLASS_ICONS.paladin); icon:SetTexCoord(0,1,0,1)
             sb.nameL=TD.Lbl(sb,12,0.9,0.85,0.7); sb.nameL:SetPoint("TOPLEFT",iconSz+8,-4); sb.nameL:SetText(spec.letter.." "..spec.name)
             local sdl=TD.Lbl(sb,9,0.8,0.7,0.55); sdl:SetPoint("BOTTOMLEFT",iconSz+8,4); sdl:SetWidth(sBW-iconSz-16); sdl:SetJustifyH("LEFT"); sdl:SetText(spec.desc)
             sb.statL=TD.Lbl(sb,10,0.75,0.65,0.5); sb.statL:SetPoint("RIGHT",-8,5); sb.specId=specId; sb.famId=fam.id
@@ -185,8 +185,8 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
     local palY=sSY-#TD.FAMILIES*(sBH+sGap); local ps=TD.SPECS.paladin
     -- Paladin support row with class icon
     local palRow=CreateFrame("Frame",nil,scrollChild); palRow:SetSize(scrollW,20); palRow:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,palY)
-    local palIcon=palRow:CreateTexture(nil,"ARTWORK"); palIcon:SetSize(18,18); palIcon:SetPoint("LEFT",0,0); palIcon:SetTexture(TD.CLASS_ICON)
-    local palCoords=TD.CLASS_COORDS.paladin; palIcon:SetTexCoord(palCoords[1],palCoords[2],palCoords[3],palCoords[4])
+    local palIcon=palRow:CreateTexture(nil,"ARTWORK"); palIcon:SetSize(18,18); palIcon:SetPoint("LEFT",0,0)
+    palIcon:SetTexture(TD.CLASS_ICONS.paladin); palIcon:SetTexCoord(0,1,0,1)
     local palL=TD.Lbl(palRow,12,0.9,0.8,0.3); palL:SetPoint("LEFT",22,0); palL:SetText("Support: "..ps.letter.." "..ps.name.." (hover specs for all tier stats)")
     -- Calculate total content height and set scroll child size
     local totalH=math.abs(palY)+24
@@ -290,8 +290,8 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
         btn:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
         btn:SetBackdropColor(spec.color[1]*0.25,spec.color[2]*0.25,spec.color[3]*0.25,0.9); btn:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8)
         local hl=btn:CreateTexture(nil,"HIGHLIGHT"); hl:SetTexture(HIGHLIGHT); hl:SetBlendMode("ADD"); hl:SetAllPoints(); hl:SetAlpha(0.15)
-        local icon=btn:CreateTexture(nil,"ARTWORK"); icon:SetSize(btnH-8,btnH-8); icon:SetPoint("LEFT",4,0); icon:SetTexture(TD.CLASS_ICON)
-        local coords=TD.CLASS_COORDS[spec.family] or TD.CLASS_COORDS.paladin; icon:SetTexCoord(coords[1],coords[2],coords[3],coords[4])
+        local icon=btn:CreateTexture(nil,"ARTWORK"); icon:SetSize(btnH-8,btnH-8); icon:SetPoint("LEFT",4,0)
+        icon:SetTexture(TD.CLASS_ICONS[spec.family] or TD.CLASS_ICONS.paladin); icon:SetTexCoord(0,1,0,1)
         local nl=TD.Lbl(btn,12,1,0.95,0.8); nl:SetPoint("TOPLEFT",btnH-2,-6); nl:SetWidth(btnW-btnH-6); nl:SetJustifyH("LEFT"); nl:SetText(spec.name)
         local cl=TD.Lbl(btn,11,0.9,0.75,0.2); cl:SetPoint("BOTTOMLEFT",btnH-2,6); cl:SetText(spec.baseCost.."g")
         btn.spec=spec; btn.specIdx=i

@@ -19,8 +19,13 @@ function TD.Dist(x1,y1,x2,y2) local dx,dy=x2-x1,y2-y1; return math.sqrt(dx*dx+dy
 function TD.CC(c,r) return (c-1)*TD.CELL+TD.CELL/2,(r-1)*TD.CELL+TD.CELL/2 end
 function TD.TS(def,stat,tier) local v=def[stat]; if type(v)=="table" then return v[tier] or v[1] end; return v end
 
-TD.CLASS_ICON="Interface\\GLUES\\CHARACTERCREATE\\UI-CharacterCreate-Classes"
-TD.CLASS_COORDS={hunter={0,0.25,0.25,0.5},mage={0.25,0.5,0,0.25},warlock={0.75,1,0.25,0.5},druid={0.75,1,0,0.25},paladin={0,0.25,0.5,0.75}}
+TD.CLASS_ICONS={
+    hunter="Interface\\Icons\\ClassIcon_Hunter",
+    mage="Interface\\Icons\\ClassIcon_Mage",
+    warlock="Interface\\Icons\\ClassIcon_Warlock",
+    druid="Interface\\Icons\\ClassIcon_Druid",
+    paladin="Interface\\Icons\\ClassIcon_Paladin",
+}
 
 TD.FAMILIES={
     {id="hunter",name="Hunter",color={0.2,0.8,0.2},specs={"marksman","survival"}},
