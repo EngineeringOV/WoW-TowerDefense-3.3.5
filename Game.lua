@@ -323,9 +323,9 @@ function TD.CheckWaveComplete() local g=TD.game; if g.state~=TD.S_PLAY then retu
         g.state=TD.S_BREAK; g.waveImmunity=nil; local bonus=3+g.wave; local st=g.equippedStats
         if st.waveGoldBonus then bonus=bonus+st.waveGoldBonus end; g.gold=g.gold+bonus
         if st.waveLifeRegen then local maxLives=g.currentMap.startLives+(st.bonusLives or 0); g.lives=math.min(g.lives+st.waveLifeRegen,maxLives) end
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r W"..g.wave.." cleared! +"..bonus..TD.GOLD_ICON); TD.UpdateHUD()
-        -- Auto-wave: immediately start next wave
-        if g.autoWave then TD.StartWave() end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r W"..g.wave.." cleared! +"..bonus..TD.GOLD_ICON)
+        -- Auto-wave: immediately start next wave; otherwise pause
+        if g.autoWave then TD.StartWave() else g.speed=0 end; TD.UpdateHUD()
     end end
 
 -- Main loop
