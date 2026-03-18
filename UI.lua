@@ -348,6 +348,7 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
         TD.SetSpecIcon(icon,spec)
         local nl=TD.Lbl(btn,12,1,0.95,0.8); nl:SetPoint("TOPLEFT",btnH-2,-6); nl:SetWidth(btnW-btnH-6); nl:SetJustifyH("LEFT"); nl:SetText(spec.name)
         local cl=TD.Lbl(btn,11,0.9,0.75,0.2); cl:SetPoint("BOTTOMLEFT",btnH-2,6); cl:SetText(spec.baseCost..TD.GOLD_ICON)
+        local immL=TD.Lbl(btn,10,1,0.3,0.3); immL:SetPoint("TOPRIGHT",-4,-4); immL:SetText(""); btn.immLabel=immL
         btn.spec=spec; btn.specIdx=i
         btn:SetScript("OnClick",function() local g=TD.game; if g.state==TD.S_OVER or g.state==TD.S_WIN then return end; g.sellMode=false; TD.HideUpgrade()
             if g.selectedTower==i then g.selectedTower=nil else g.selectedTower=i end; TD.UpdateTowerBtns() end)
@@ -455,6 +456,15 @@ function TD.UpdateHUD() local g=TD.game
     elseif g.state==TD.S_OVER then TD.ui.statusL:SetText("|cffee4444Defeated W"..g.wave.."|r")
     elseif g.state==TD.S_WIN then TD.ui.statusL:SetText("|cff33cc33Map Complete!|r") end
     TD.ui.sellBtn:SetText(g.sellMode and "|cffcc3333Sell ON|r" or "Sell Mode")
+    -- Immunity indicators on tower buy buttons
+    local imm=g.waveImmunity
+    for _,btn in ipairs(TD.ui.towerBtns) do local sp=btn.spec; local warn=""
+        if imm=="nomagic" and sp.family=="mage" then warn="|cffee4444IMMUNE|r"
+        elseif imm=="nophysic" and sp.family=="hunter" then warn="|cffee4444IMMUNE|r"
+        elseif imm=="noslow" and type(sp.slowPct)=="table" and sp.slowPct[1]>0 then warn="|cffddaa44No Slow|r"
+        elseif imm=="nodot" and type(sp.dot)=="table" and sp.dot[1]>0 then warn="|cffddaa44No DoT|r"
+        elseif imm=="noaoe" and (sp.pulse or (type(sp.splash)=="table" and sp.splash[1]>0)) then warn="|cffddaa44No AoE|r" end
+        btn.immLabel:SetText(warn) end
     local lines=TD.WavePreview(g.waveList,g.wave,5); for i=1,5 do TD.ui.pvLines[i]:SetText(lines[i] or "") end
     -- Challenge tracker
     if TD.ui.challengeLines and g.currentMap and g.currentMap.challenges then
