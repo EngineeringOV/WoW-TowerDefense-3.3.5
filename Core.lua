@@ -82,7 +82,7 @@ TD.BOSS_DEFS={
 
 TD.BOON_DEFS={
     power={name="Ley Line",char="P",color={0.6,0.2,0.2},desc="+20% tower damage",dmgMult=1.20},
-    range={name="High Ground",char="R",color={0.2,0.3,0.6},desc="+15% tower range",rngMult=1.15},
+    range={name="High Ground",char="R",color={0.2,0.3,0.6},desc="+35% tower range",rngMult=1.35},
     haste={name="Mana Well",char="H",color={0.5,0.5,0.15},desc="+15% attack speed",cdMult=0.85},
 }
 
