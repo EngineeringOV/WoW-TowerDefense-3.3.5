@@ -402,7 +402,7 @@ SLASH_TOWERDEFENSE1="/td"; SLASH_TOWERDEFENSE2="/towerdefense"
 SlashCmdList["TOWERDEFENSE"]=function(msg) if msg=="reset" then TowerDefenseSaved={}; TD.EnsureSaved(); if TD.frames.menuFrame then TD.RefreshMenu() end
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r All progress, items, and specs have been reset."); return end
     if msg=="itsasecret" then TD.EnsureSaved()
-        for _,m in ipairs(TD.MAPS) do if not m.secret then TowerDefenseSaved.maps[m.id]={bestWave=m.totalWaves,completed=true,stars=1} end end
+        for _,m in ipairs(TD.MAPS) do if not m.secret or m.id=="cavernstime" then TowerDefenseSaved.maps[m.id]={bestWave=m.totalWaves,completed=true,stars=1} end end
         if TD.frames.menuFrame then TD.RefreshMenu() end
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r |cffff00ffSecret levels unlocked!|r The timeways are open..."); return end
     if not TD.frames.main then return end; if TD.frames.main:IsShown() then TD.frames.main:Hide() else TD.ShowMenu() end end
