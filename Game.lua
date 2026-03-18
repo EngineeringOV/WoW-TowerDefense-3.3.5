@@ -61,10 +61,20 @@ local function DeepCopyAbilities(abilities) local out={}; for _,a in ipairs(abil
 
 function TD.SpawnEnemy(tn,hpScale,immunity,startIdx)
     local d=TD.ENEMY_DEFS[tn]; if not d then return end
+    local md=TD.game.currentMap
     local ef=GetEF(); ef:SetSize(d.size,d.size); ef.body:SetVertexColor(d.color[1],d.color[2],d.color[3],1)
-    local si=startIdx or 1; local sp=TD.currentPathPoints[si]; if not sp then sp=TD.currentPathPoints[1]; si=1 end
+    -- Open-field: pick random spawn row, compute BFS path
+    local ownPath,si,sp
+    if md and md.openField then
+        local rows=md.spawnRows; local sr=rows[math.random(1,#rows)]
+        ownPath=TD.ComputeOpenFieldPath(sr)
+        if not ownPath or #ownPath<2 then return end -- no valid path, skip spawn
+        si=1; sp=ownPath[1]
+    else
+        si=startIdx or 1; sp=TD.currentPathPoints[si]; if not sp then sp=TD.currentPathPoints[1]; si=1 end
+    end
     ef:ClearAllPoints(); ef:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",sp.x,-sp.y); ef:Show()
-    local mhp=math.floor(d.hp*hpScale); local spd=d.speed; if TD.game.currentMap and TD.game.currentMap.speedMult then spd=spd*TD.game.currentMap.speedMult end
+    local mhp=math.floor(d.hp*hpScale); local spd=d.speed; if md and md.speedMult then spd=spd*md.speedMult end
     if immunity then ef.immBar:SetAlpha(0.8)
         if immunity=="nomagic" then ef.immBar:SetVertexColor(0.4,0.4,1,0.8) elseif immunity=="nophysic" then ef.immBar:SetVertexColor(0.8,0.6,0.2,0.8)
         elseif immunity=="noslow" then ef.immBar:SetVertexColor(0.3,0.8,1,0.8) elseif immunity=="nodot" then ef.immBar:SetVertexColor(0.7,0.3,0.7,0.8)
@@ -72,21 +82,30 @@ function TD.SpawnEnemy(tn,hpScale,immunity,startIdx)
     else ef.immBar:SetAlpha(0) end
     ef.flash:SetAlpha(0); if ef.nameLabel then ef.nameLabel:SetText(""); ef.nameLabel:Hide() end
     local en={typeName=tn,hp=mhp,maxHP=mhp,speed=spd,baseSpeed=spd,reward=d.reward,
-        pathIndex=si+1,x=sp.x,y=sp.y,frame=ef,slowTimer=0,alive=true,dots={},immunity=immunity,isBoss=false,abilities=nil,lastTileKey=nil,flashTimer=0}
+        pathIndex=si+1,x=sp.x,y=sp.y,frame=ef,slowTimer=0,alive=true,dots={},immunity=immunity,isBoss=false,abilities=nil,lastTileKey=nil,flashTimer=0,
+        ownPath=ownPath}
     local bw=ef.hpBg:GetWidth(); if bw<1 then bw=d.size end; ef.hpBar:SetWidth(bw)
     TD.game.enemies[#TD.game.enemies+1]=en end
 
 function TD.SpawnMapBoss(bossId,hpScale)
     local bd=TD.BOSS_DEFS[bossId]; if not bd then return end
+    local md=TD.game.currentMap
     local ef=GetEF(); ef:SetSize(bd.size,bd.size); ef.body:SetVertexColor(bd.color[1],bd.color[2],bd.color[3],1)
-    local sp=TD.currentPathPoints[1]; ef:ClearAllPoints(); ef:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",sp.x,-sp.y); ef:Show()
-    local mhp=math.floor(bd.hp*hpScale); local spd=bd.speed; if TD.game.currentMap and TD.game.currentMap.speedMult then spd=spd*TD.game.currentMap.speedMult end
+    -- Open-field: boss gets BFS path from random spawn row
+    local ownPath,sp
+    if md and md.openField then
+        local rows=md.spawnRows; local sr=rows[math.random(1,#rows)]
+        ownPath=TD.ComputeOpenFieldPath(sr)
+        if not ownPath or #ownPath<2 then sp=TD.currentPathPoints[1] else sp=ownPath[1] end
+    else sp=TD.currentPathPoints[1] end
+    ef:ClearAllPoints(); ef:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",sp.x,-sp.y); ef:Show()
+    local mhp=math.floor(bd.hp*hpScale); local spd=bd.speed; if md and md.speedMult then spd=spd*md.speedMult end
     if not ef.nameLabel then ef.nameLabel=TD.Lbl(ef,10,1,0.8,1); ef.nameLabel:SetPoint("TOP",ef,"BOTTOM",0,-5) end; ef.nameLabel:SetText(bd.name); ef.nameLabel:Show()
     ef.immBar:SetAlpha(0); ef.flash:SetAlpha(0)
     local en={typeName="_mapboss",hp=mhp,maxHP=mhp,speed=spd,baseSpeed=spd,reward=bd.reward,
         pathIndex=2,x=sp.x,y=sp.y,frame=ef,slowTimer=0,alive=true,dots={},immunity=nil,
         isBoss=true,bossId=bossId,bossName=bd.name,abilities=DeepCopyAbilities(bd.abilities),lastTileKey=nil,
-        enraged=false,metamorphed=false,vanished=false,flashTimer=0}
+        enraged=false,metamorphed=false,vanished=false,flashTimer=0,ownPath=ownPath}
     for _,ab in ipairs(en.abilities) do if ab.trigger=="onSpawn" and ab.action=="immunity" then en.immunity=ab.immType end end
     local bw=ef.hpBg:GetWidth(); if bw<1 then bw=bd.size end; ef.hpBar:SetWidth(bw)
     TD.game.enemies[#TD.game.enemies+1]=en; DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(bossId).." has arrived!") end
@@ -245,7 +264,7 @@ function TD.UpdateEnemies(elapsed) local g=TD.game; local rem={}
                 if est.deathSplash and est.deathSplash>0 then local rad=est.deathSplashRadius or 60
                     for _,o in ipairs(g.enemies) do if o.alive and o~=e and TD.Dist(e.x,e.y,o.x,o.y)<=rad then
                         o.hp=o.hp-est.deathSplash; TD.FlashEnemy(o,1,0.6,0.2) end end end
-            else local tgt=TD.currentPathPoints[e.pathIndex]
+            else local pathPts=e.ownPath or TD.currentPathPoints; local tgt=pathPts[e.pathIndex]
                 if not tgt then g.lives=g.lives-1; g.tracking.livesLost=g.tracking.livesLost+1; if g.wave>15 then g.tracking.latelivesLost=g.tracking.latelivesLost+1 end
                     e.alive=false; e.frame:Hide(); rem[#rem+1]=i; if g.lives<=0 then g.state=TD.S_OVER; TD.SaveMapProgress(g.currentMap.id,g.wave,g.totalWaves,0,g.currentMap.startLives) end
                 else local dx=tgt.x-e.x; local dy=tgt.y-e.y; local dist=TD.Dist(e.x,e.y,tgt.x,tgt.y); local mv=e.speed*elapsed

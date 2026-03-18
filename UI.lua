@@ -400,15 +400,26 @@ function TD.SellValue(tower) local spec=TD.game.activeSpecs[tower.specIdx]; loca
 function TD.SellTower(tower) TD.game.gold=TD.game.gold+TD.SellValue(tower); if TD.game.wave>0 then TD.game.tracking.sellCount=TD.game.tracking.sellCount+1 end; tower.frame:Hide()
     for i,t in ipairs(TD.game.towers) do if t==tower then table.remove(TD.game.towers,i); break end end; TD.UpdateHUD() end
 
--- Grid (no flanking)
+-- Grid
 function TD.CreateGrid() local ga=TD.frames.gameArea
     -- Hide old cells individually instead of ga:GetChildren() which overflows the stack
     for _,cell in pairs(TD.frames.cells) do cell:Hide() end; wipe(TD.frames.cells)
-    local th=TD.game.currentMap.theme
+    local th=TD.game.currentMap.theme; local md=TD.game.currentMap
+    -- Build open-field reserved tile sets (babe + spawn tiles can't be built on)
+    local babeSet,spawnSet={},{}
+    if md.openField then
+        if md.babeRows then for _,br in ipairs(md.babeRows) do babeSet[TD.COLS..","..br]=true end end
+        if md.spawnRows then for _,sr in ipairs(md.spawnRows) do spawnSet[1 ..","..sr]=true end end end
     for r=1,ROWS do for c=1,COLS do local cell=CreateFrame("Button",nil,ga); cell:SetSize(C-1,C-1); cell:SetPoint("TOPLEFT",ga,"TOPLEFT",(c-1)*C,-((r-1)*C))
         cell.col=c; cell.row=r; cell.bg=TD.Tex(cell,"BACKGROUND",0,0,0,1); cell.bg:SetAllPoints()
         local k=c..","..r; local isTrigger=TD.currentTriggerGrid[k]
-        if TD.currentPathGrid[k] then cell.bg:SetVertexColor(th.path[1],th.path[2],th.path[3],1)
+        if babeSet[k] then -- Beach babe tile (right edge)
+            cell.bg:SetVertexColor(0.9,0.7,0.4,1)
+            local bl=TD.Lbl(cell,16,1,0.5,0.7); bl:SetPoint("CENTER"); bl:SetText("B"); bl:SetAlpha(0.9)
+        elseif spawnSet[k] then -- Spawn tile (left edge)
+            cell.bg:SetVertexColor(0.4,0.15,0.15,1)
+            local sl=TD.Lbl(cell,14,1,0.3,0.3); sl:SetPoint("CENTER"); sl:SetText(">"); sl:SetAlpha(0.7)
+        elseif TD.currentPathGrid[k] then cell.bg:SetVertexColor(th.path[1],th.path[2],th.path[3],1)
             if isTrigger then local tm=TD.Lbl(cell,16,1,0.2,0.8); tm:SetPoint("CENTER"); tm:SetText("X"); tm:SetAlpha(0.6) end
         elseif TD.currentBlockedGrid[k] then cell.bg:SetVertexColor(th.blocked[1],th.blocked[2],th.blocked[3],1)
             local bc=TD.Lbl(cell,14,th.blocked[1]*0.6,th.blocked[2]*0.6,th.blocked[3]*0.6); bc:SetPoint("CENTER"); bc:SetText(th.bChar); bc:SetAlpha(0.5)
@@ -419,17 +430,25 @@ function TD.CreateGrid() local ga=TD.frames.gameArea
         cell:SetScript("OnClick",function(self) local g=TD.game; if g.state==TD.S_OVER or g.state==TD.S_WIN then return end
             local ck=self.col..","..self.row; TD.HideUpgrade()
             if TD.currentPathGrid[ck] or TD.currentBlockedGrid[ck] then return end
+            -- Open-field: babe/spawn tiles not buildable
+            if babeSet[ck] or spawnSet[ck] then return end
             if g.sellMode then for _,t in ipairs(g.towers) do if t.col==self.col and t.row==self.row then TD.SellTower(t); return end end; return end
             if g.selectedTower then for _,t in ipairs(g.towers) do if t.col==self.col and t.row==self.row then return end end
                 local spec=g.activeSpecs[g.selectedTower]
-                if g.gold>=spec.baseCost then g.gold=g.gold-spec.baseCost; g.tracking.goldSpent=g.tracking.goldSpent+spec.baseCost; TD.PlaceTower(g.selectedTower,self.col,self.row)
+                if g.gold>=spec.baseCost then
+                    -- Open-field: validate path still exists before placing
+                    if md.openField and not TD.ValidateOpenFieldPath(self.col,self.row) then
+                        DEFAULT_CHAT_FRAME:AddMessage("|cffcc4444[TD]|r Can't build there - it would block all paths!"); return end
+                    g.gold=g.gold-spec.baseCost; g.tracking.goldSpent=g.tracking.goldSpent+spec.baseCost; TD.PlaceTower(g.selectedTower,self.col,self.row)
                     local tc=0; for _ in ipairs(g.towers) do tc=tc+1 end; if tc>g.tracking.maxTowers then g.tracking.maxTowers=tc end; TD.UpdateHUD() end end end)
         cell:SetScript("OnEnter",function(self) local ck=self.col..","..self.row
-            if TD.currentBoonGrid[ck] then local bd=TD.BOON_DEFS[TD.currentBoonGrid[ck]]; GameTooltip:SetOwner(self,"ANCHOR_CURSOR"); GameTooltip:AddLine(bd.name,bd.color[1],bd.color[2],bd.color[3]); GameTooltip:AddLine(bd.desc,0.8,0.8,0.8); GameTooltip:Show()
+            if babeSet[ck] then GameTooltip:SetOwner(self,"ANCHOR_CURSOR"); GameTooltip:AddLine("Beach Babe",1,0.5,0.7); GameTooltip:AddLine("Naga target! Protect her!",0.8,0.8,0.8); GameTooltip:Show()
+            elseif spawnSet[ck] then GameTooltip:SetOwner(self,"ANCHOR_CURSOR"); GameTooltip:AddLine("Naga Spawn",1,0.3,0.3); GameTooltip:AddLine("Enemies enter here",0.8,0.8,0.8); GameTooltip:Show()
+            elseif TD.currentBoonGrid[ck] then local bd=TD.BOON_DEFS[TD.currentBoonGrid[ck]]; GameTooltip:SetOwner(self,"ANCHOR_CURSOR"); GameTooltip:AddLine(bd.name,bd.color[1],bd.color[2],bd.color[3]); GameTooltip:AddLine(bd.desc,0.8,0.8,0.8); GameTooltip:Show()
             elseif TD.currentBlockedGrid[ck] then GameTooltip:SetOwner(self,"ANCHOR_CURSOR"); GameTooltip:AddLine(th.bName,th.blocked[1],th.blocked[2],th.blocked[3]); GameTooltip:AddLine("Cannot build",0.6,0.6,0.6); GameTooltip:Show()
             elseif TD.currentTriggerGrid[ck] then GameTooltip:SetOwner(self,"ANCHOR_CURSOR"); GameTooltip:AddLine("Boss Trigger",1,0.2,0.8)
                 local bId=TD.game.currentMap and TD.game.currentMap.boss; if bId and TD.BOSS_DEFS[bId] then GameTooltip:AddLine(TD.BOSS_DEFS[bId].name.." activates here",0.8,0.6,0.9) end; GameTooltip:Show() end
-            if TD.game.selectedTower and not TD.currentPathGrid[ck] and not TD.currentBlockedGrid[ck] then
+            if TD.game.selectedTower and not TD.currentPathGrid[ck] and not TD.currentBlockedGrid[ck] and not babeSet[ck] and not spawnSet[ck] then
                 local spec=TD.game.activeSpecs[TD.game.selectedTower]; local rng=TD.TS(spec,"range",1); local st=TD.game.equippedStats
                 if st.rangeMult then rng=rng*st.rangeMult end; local boon=TD.currentBoonGrid[ck]; if boon and TD.BOON_DEFS[boon].rngMult then rng=rng*TD.BOON_DEFS[boon].rngMult end
                 TD.ShowRange(self.col,self.row,rng) end end)
