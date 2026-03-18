@@ -292,7 +292,7 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
     TD.ui.ffBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.ffBtn:SetSize(50,26); TD.ui.ffBtn:SetPoint("LEFT",TD.ui.playBtn,"RIGHT",4,0); TD.ui.ffBtn:SetText(">>")
     TD.ui.ffBtn:SetScript("OnClick",function() TD.game.speed=2; TD.UpdateSpeedBtns() end)
     TD.ui.fffBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.fffBtn:SetSize(50,26); TD.ui.fffBtn:SetPoint("LEFT",TD.ui.ffBtn,"RIGHT",4,0); TD.ui.fffBtn:SetText(">>>")
-    TD.ui.fffBtn:SetScript("OnClick",function() TD.game.speed=3; TD.UpdateSpeedBtns() end)
+    TD.ui.fffBtn:SetScript("OnClick",function() TD.game.speed=4; TD.UpdateSpeedBtns() end)
     -- Auto-wave toggle
     TD.ui.autoBtn=CreateFrame("Button",nil,panel,"UIPanelButtonTemplate"); TD.ui.autoBtn:SetSize(pw,24)
     TD.ui.autoBtn:SetScript("OnClick",function() TD.game.autoWave=not TD.game.autoWave; TD.UpdateHUD() end)
@@ -329,7 +329,7 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
 
 function TD.UpdateSpeedBtns() local s=TD.game.speed
     TD.ui.pauseBtn:SetText(s==0 and "|cffffffff|||r|cffffffff|||r" or "||"); TD.ui.playBtn:SetText(s==1 and "|cff00ff00>|r" or ">")
-    TD.ui.ffBtn:SetText(s==2 and "|cff00ff00>>|r" or ">>"); TD.ui.fffBtn:SetText(s==3 and "|cff00ff00>>>|r" or ">>>") end
+    TD.ui.ffBtn:SetText(s==2 and "|cff00ff00>>|r" or ">>"); TD.ui.fffBtn:SetText(s==4 and "|cff00ff00>>>|r" or ">>>") end
 
 -- Tower buttons (2-col with class icons + tier tooltip)
 function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end; wipe(TD.ui.towerBtns)
@@ -392,7 +392,7 @@ function TD.HideUpgrade() if TD.frames.upgradeFrame then TD.frames.upgradeFrame:
 function TD.SellValue(tower) local spec=TD.game.activeSpecs[tower.specIdx]; local total=spec.baseCost; for t=2,tower.tier do total=total+(spec.upgradeCost[t] or 0) end
     if TD.game.wave==0 then return total end
     local pct=0.5; local st=TD.game.equippedStats; if st and st.sellMult then pct=st.sellMult end; return math.floor(total*pct) end
-function TD.SellTower(tower) TD.game.gold=TD.game.gold+TD.SellValue(tower); TD.game.tracking.sellCount=TD.game.tracking.sellCount+1; tower.frame:Hide()
+function TD.SellTower(tower) TD.game.gold=TD.game.gold+TD.SellValue(tower); if TD.game.wave>0 then TD.game.tracking.sellCount=TD.game.tracking.sellCount+1 end; tower.frame:Hide()
     for i,t in ipairs(TD.game.towers) do if t==tower then table.remove(TD.game.towers,i); break end end; TD.UpdateHUD() end
 
 -- Grid (no flanking)
