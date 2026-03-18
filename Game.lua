@@ -327,7 +327,10 @@ function TD.CheckWaveComplete() local g=TD.game; if g.state~=TD.S_PLAY then retu
         if st.waveLifeRegen then local maxLives=g.currentMap.startLives+(st.bonusLives or 0); g.lives=math.min(g.lives+st.waveLifeRegen,maxLives) end
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r W"..g.wave.." cleared! +"..bonus..TD.GOLD_ICON)
         -- Auto-wave: immediately start next wave; otherwise pause
-        if g.autoWave then TD.StartWave() else g.speed=0 end; TD.UpdateHUD()
+        if g.autoWave then TD.StartWave() else g.speed=0; g.tracking.neverPaused=false
+            if g.currentMap and g.currentMap.challenges then for _,ch in ipairs(g.currentMap.challenges) do
+                if ch.type=="speedrun" and not TD.IsChallengeComplete(ch.id) then DEFAULT_CHAT_FRAME:AddMessage("|cffcc4444[TD]|r Speed Run challenge failed! Auto Wave is off."); break end end end
+        end; TD.UpdateHUD()
     end end
 
 function TD.AutoUpgradeTowers() local g=TD.game; local st=g.equippedStats; local upgraded=false
