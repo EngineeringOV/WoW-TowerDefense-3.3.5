@@ -3,6 +3,7 @@ TowerDefenseSaved = TowerDefenseSaved or {}
 TD.SOLID="Interface\\Buttons\\WHITE8X8"; TD.MINIMAP_CIRCLE="Interface\\Minimap\\UI-Minimap-Background"
 TD.CELL=48; TD.COLS=20; TD.ROWS=13; TD.PANEL_W=300; TD.PAD_TOP=50; TD.PAD_BOT=28
 TD.PROJ_SPEED=380; TD.SPAWN_CD=0.6; TD.BREAK_TIME=8
+TD.GOLD_ICON="|TInterface\\MoneyFrame\\UI-GoldIcon:0|t"
 TD.S_MENU=-1; TD.S_EQUIP=-2; TD.S_IDLE=0; TD.S_PLAY=1; TD.S_BREAK=2; TD.S_OVER=3; TD.S_WIN=4
 
 function TD.EnsureSaved() local s=TowerDefenseSaved
@@ -219,7 +220,7 @@ function TD.GetChallengeStatus(chType)
     elseif chType=="minimalist" then return t.maxTowers<=6, t.maxTowers.."/6 towers"
     elseif chType=="nosell" then return t.sellCount==0, t.sellCount==0 and "0 sells" or t.sellCount.." sells"
     elseif chType=="speedrun" then return t.neverPaused, t.neverPaused and "No pauses" or "Paused"
-    elseif chType=="pauper" then return t.goldSpent<=400, t.goldSpent.."/400g spent"
+    elseif chType=="pauper" then return t.goldSpent<=400, t.goldSpent.."/400"..TD.GOLD_ICON.." spent"
     elseif chType=="endurance" then local ok=t.latelivesLost==0; return ok, ok and "0 late losses" or t.latelivesLost.." late losses"
     end; return true,"" end
 

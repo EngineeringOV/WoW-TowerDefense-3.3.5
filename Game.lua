@@ -217,7 +217,7 @@ function TD.DamageEnemy(en,damage,tower,isSplash)
             if st.lifeOnBossKill and st.lifeOnBossKill>0 then local maxLives=TD.game.currentMap.startLives+(st.bonusLives or 0)
                 TD.game.lives=math.min(TD.game.lives+st.lifeOnBossKill,maxLives)
                 DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[TD]|r Boss killed! +"..st.lifeOnBossKill.." life restored!") end
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." defeated! +"..rw.."g") end
+            DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." defeated! +"..rw..TD.GOLD_ICON) end
     else
         if imm~="noslow" then local ti=tower.tier; local sp=TD.TS(spec,"slowPct",ti); local sd=TD.TS(spec,"slowDur",ti)
             if st.slowDurMult and sd>0 then sd=sd*st.slowDurMult end; if sp>0 then en.speed=en.baseSpeed*(1-sp); en.slowTimer=sd end
@@ -323,7 +323,7 @@ function TD.CheckWaveComplete() local g=TD.game; if g.state~=TD.S_PLAY then retu
         g.state=TD.S_BREAK; g.waveImmunity=nil; local bonus=3+g.wave; local st=g.equippedStats
         if st.waveGoldBonus then bonus=bonus+st.waveGoldBonus end; g.gold=g.gold+bonus
         if st.waveLifeRegen then local maxLives=g.currentMap.startLives+(st.bonusLives or 0); g.lives=math.min(g.lives+st.waveLifeRegen,maxLives) end
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r W"..g.wave.." cleared! +"..bonus.."g"); TD.UpdateHUD()
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r W"..g.wave.." cleared! +"..bonus..TD.GOLD_ICON); TD.UpdateHUD()
         -- Auto-wave: immediately start next wave
         if g.autoWave then TD.StartWave() end
     end end

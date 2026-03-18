@@ -177,10 +177,11 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
             sb.statL=TD.Lbl(sb,10,0.75,0.65,0.5); sb.statL:SetPoint("RIGHT",-8,5); sb.specId=specId; sb.famId=fam.id
             sb:SetScript("OnClick",function() if TD.IsSpecUnlocked(specId) then TowerDefenseSaved.specs[fam.id]=specId; TD.RefreshEquip() end end)
             sb:SetScript("OnEnter",function(self) GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:AddLine(spec.name,spec.color[1],spec.color[2],spec.color[3]); GameTooltip:AddLine(spec.desc,0.9,0.85,0.75)
-                if spec.pulse then for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg ALL in %d / %.1fs  %.1f DPS (%dg)",ti,d,TD.TS(spec,"range",ti),cd,d/cd,spec.baseCost+(spec.upgradeCost[ti] or 0)),1,0.8,0.3) end
-                elseif spec.aura then for ti=1,3 do GameTooltip:AddLine(string.format("T%d: Rng:%d +%d%% dmg +%d%% spd +%d%% rng (%dg)",ti,TD.TS(spec,"range",ti),TD.TS(spec,"auraDmg",ti)*100,TD.TS(spec,"auraSpd",ti)*100,(TD.TS(spec,"auraRng",ti) or 0)*100,spec.baseCost+(spec.upgradeCost[ti] or 0)),1,0.9,0.4) end
+                local G=TD.GOLD_ICON
+                if spec.pulse then for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg ALL in %d / %.1fs  %.1f DPS (%d",ti,d,TD.TS(spec,"range",ti),cd,d/cd,spec.baseCost+(spec.upgradeCost[ti] or 0))..G..")",1,0.8,0.3) end
+                elseif spec.aura then for ti=1,3 do GameTooltip:AddLine(string.format("T%d: Rng:%d +%d%% dmg +%d%% spd +%d%% rng (%d",ti,TD.TS(spec,"range",ti),TD.TS(spec,"auraDmg",ti)*100,TD.TS(spec,"auraSpd",ti)*100,(TD.TS(spec,"auraRng",ti) or 0)*100,spec.baseCost+(spec.upgradeCost[ti] or 0))..G..")",1,0.9,0.4) end
                     GameTooltip:AddLine("Buffed towers glow gold",0.7,0.7,0.4)
-                else for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg, %d rng, %.1fs  %.1f DPS (%dg)",ti,d,TD.TS(spec,"range",ti),cd,d/cd,spec.baseCost+(spec.upgradeCost[ti] or 0)),1,1,1) end end
+                else for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg, %d rng, %.1fs  %.1f DPS (%d",ti,d,TD.TS(spec,"range",ti),cd,d/cd,spec.baseCost+(spec.upgradeCost[ti] or 0))..G..")",1,1,1) end end
                 if TD.TS(spec,"splash",1)>0 then GameTooltip:AddLine(string.format("Splash: %d/%d/%d radius",TD.TS(spec,"splash",1),TD.TS(spec,"splash",2),TD.TS(spec,"splash",3)),1,0.5,0.2) end
                 if TD.TS(spec,"slowPct",1)>0 then GameTooltip:AddLine(string.format("Slow: %d%%/%d%%/%d%% for %.1f/%.1f/%.1fs",TD.TS(spec,"slowPct",1)*100,TD.TS(spec,"slowPct",2)*100,TD.TS(spec,"slowPct",3)*100,TD.TS(spec,"slowDur",1),TD.TS(spec,"slowDur",2),TD.TS(spec,"slowDur",3)),0.4,0.7,1) end
                 if TD.TS(spec,"dot",1)>0 then GameTooltip:AddLine(string.format("DoT: %d/%d/%d dps for 3s",TD.TS(spec,"dot",1),TD.TS(spec,"dot",2),TD.TS(spec,"dot",3)),0.7,0.3,0.5) end
@@ -342,7 +343,7 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
         local icon=btn:CreateTexture(nil,"ARTWORK"); icon:SetSize(btnH-8,btnH-8); icon:SetPoint("LEFT",4,0)
         TD.SetSpecIcon(icon,spec)
         local nl=TD.Lbl(btn,12,1,0.95,0.8); nl:SetPoint("TOPLEFT",btnH-2,-6); nl:SetWidth(btnW-btnH-6); nl:SetJustifyH("LEFT"); nl:SetText(spec.name)
-        local cl=TD.Lbl(btn,11,0.9,0.75,0.2); cl:SetPoint("BOTTOMLEFT",btnH-2,6); cl:SetText(spec.baseCost.."g")
+        local cl=TD.Lbl(btn,11,0.9,0.75,0.2); cl:SetPoint("BOTTOMLEFT",btnH-2,6); cl:SetText(spec.baseCost..TD.GOLD_ICON)
         btn.spec=spec; btn.specIdx=i
         btn:SetScript("OnClick",function() local g=TD.game; if g.state==TD.S_OVER or g.state==TD.S_WIN then return end; g.sellMode=false; TD.HideUpgrade()
             if g.selectedTower==i then g.selectedTower=nil else g.selectedTower=i end; TD.UpdateTowerBtns() end)
@@ -361,8 +362,8 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
     TD.ui.statusFrame:ClearAllPoints(); TD.ui.statusFrame:SetPoint("TOP",panel,"TOP",0,yBase-110) end
 
 function TD.UpdateTowerBtns() for i,btn in ipairs(TD.ui.towerBtns) do local spec=btn.spec
-    if TD.game.selectedTower==i then btn:SetBackdropBorderColor(1,0.85,0.2,1); if btn.selGlow then btn.selGlow:Show() end
-    else btn:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8); if btn.selGlow then btn.selGlow:Hide() end end end end
+    if TD.game.selectedTower==i then btn:SetBackdropBorderColor(1,0.85,0.2,1); btn:SetBackdropColor(spec.color[1]*0.1,spec.color[2]*0.1,spec.color[3]*0.1,0.95); if btn.selGlow then btn.selGlow:Show() end
+    else btn:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8); btn:SetBackdropColor(spec.color[1]*0.25,spec.color[2]*0.25,spec.color[3]*0.25,0.9); if btn.selGlow then btn.selGlow:Hide() end end end end
 
 -- Upgrade popup shows paladin buff
 function TD.ShowUpgrade(tower)
@@ -377,11 +378,11 @@ function TD.ShowUpgrade(tower)
     local pD,pS,pR=TD.GetPaladinBuff(tower); if pD>0 or pS>0 then info=info.."\n|cffffff88Paladin: +"..(math.floor(pD*100)).."%dmg +"..(math.floor(pS*100)).."%spd|r" end
     uf.infoL:SetText(info)
     if t<3 then local cost=spec.upgradeCost[t+1]; if st.upgradeCostMult then cost=math.floor(cost*st.upgradeCostMult) end
-        uf.upBtn:SetText("T"..(t+1).." ("..cost.."g)"); uf.upBtn:Show()
+        uf.upBtn:SetText("T"..(t+1).." ("..cost..TD.GOLD_ICON..")"); uf.upBtn:Show()
         uf.upBtn:SetScript("OnClick",function() if TD.game.gold>=cost then TD.game.gold=TD.game.gold-cost; TD.game.tracking.goldSpent=TD.game.tracking.goldSpent+cost
             tower.tier=t+1; tower.cooldownTimer=0; tower.frame.tierL:SetText("T"..tower.tier); TD.ShowUpgrade(tower); TD.UpdateHUD() end end)
         uf:SetHeight(135) else uf.upBtn:Hide(); uf:SetHeight(110) end
-    uf.slBtn:SetText("Sell ("..TD.SellValue(tower).."g)"); uf.slBtn:SetScript("OnClick",function() TD.SellTower(tower); uf:Hide() end)
+    uf.slBtn:SetText("Sell ("..TD.SellValue(tower)..TD.GOLD_ICON..")"); uf.slBtn:SetScript("OnClick",function() TD.SellTower(tower); uf:Hide() end)
     uf:ClearAllPoints(); uf:SetPoint("BOTTOM",tower.frame,"TOP",0,8); uf:Show(); TD.activeTowerPanel=tower end
 
 function TD.HideUpgrade() if TD.frames.upgradeFrame then TD.frames.upgradeFrame:Hide() end; TD.activeTowerPanel=nil end
@@ -430,7 +431,7 @@ function TD.ShowRange(col,row,rng) if not TD.frames.rangeCircle then local rc=Cr
     local cx,cy=TD.CC(col,row); TD.frames.rangeCircle:SetSize(rng*2,rng*2); TD.frames.rangeCircle:ClearAllPoints(); TD.frames.rangeCircle:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",cx,-cy); TD.frames.rangeCircle:Show() end
 
 function TD.UpdateHUD() local g=TD.game
-    TD.ui.goldL:SetText("Gold: "..g.gold); TD.ui.livesL:SetText("Lives: "..g.lives)
+    TD.ui.goldL:SetText(g.gold..TD.GOLD_ICON); TD.ui.livesL:SetText("Lives: "..g.lives)
     TD.ui.waveL:SetText("Wave: "..g.wave.." / "..g.totalWaves); TD.ui.flavorL:SetText(g.currentMap and g.currentMap.flavor or "")
     for s=1,3 do local eqId=TowerDefenseSaved.equipped[s]; local d=TD.ITEM_DEFS[eqId or ""]; TD.ui.eqDisp[s]:SetText(d and ("|cff"..HexC(d.color)..d.icon.."|r "..d.name) or "") end
     local showSend=(g.state==TD.S_IDLE or g.state==TD.S_BREAK); local showSpeed=(g.state==TD.S_PLAY)
