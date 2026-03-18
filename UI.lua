@@ -171,7 +171,7 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
             sb:SetBackdropColor(spec.color[1]*0.2,spec.color[2]*0.2,spec.color[3]*0.2,0.9); sb:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8)
             -- Class icon
             local icon=sb:CreateTexture(nil,"ARTWORK"); icon:SetSize(iconSz,iconSz); icon:SetPoint("LEFT",4,0)
-            icon:SetTexture(TD.CLASS_ICON); local coords=TD.CLASS_COORDS[spec.family] or TD.CLASS_COORDS.paladin; icon:SetTexCoord(coords[1],coords[2],coords[3],coords[4])
+            TD.SetSpecIcon(icon,spec)
             sb.nameL=TD.Lbl(sb,12,0.9,0.85,0.7); sb.nameL:SetPoint("TOPLEFT",iconSz+8,-4); sb.nameL:SetText(spec.letter.." "..spec.name)
             local sdl=TD.Lbl(sb,9,0.8,0.7,0.55); sdl:SetPoint("BOTTOMLEFT",iconSz+8,4); sdl:SetWidth(sBW-iconSz-16); sdl:SetJustifyH("LEFT"); sdl:SetText(spec.desc)
             sb.statL=TD.Lbl(sb,10,0.75,0.65,0.5); sb.statL:SetPoint("RIGHT",-8,5); sb.specId=specId; sb.famId=fam.id
@@ -190,7 +190,7 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
     -- Paladin support row with class icon
     local palRow=CreateFrame("Frame",nil,scrollChild); palRow:SetSize(scrollW,20); palRow:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",4,palY)
     local palIcon=palRow:CreateTexture(nil,"ARTWORK"); palIcon:SetSize(18,18); palIcon:SetPoint("LEFT",0,0)
-    palIcon:SetTexture(TD.CLASS_ICON); local palCoords=TD.CLASS_COORDS.paladin; palIcon:SetTexCoord(palCoords[1],palCoords[2],palCoords[3],palCoords[4])
+    TD.SetSpecIcon(palIcon,TD.SPECS.paladin)
     local palL=TD.Lbl(palRow,12,0.9,0.8,0.3); palL:SetPoint("LEFT",22,0); palL:SetText("Support: "..ps.letter.." "..ps.name.." (hover specs for all tier stats)")
     -- Calculate total content height and set scroll child size
     local totalH=math.abs(palY)+24
@@ -337,7 +337,7 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
         btn:SetBackdropColor(spec.color[1]*0.25,spec.color[2]*0.25,spec.color[3]*0.25,0.9); btn:SetBackdropBorderColor(spec.color[1]*0.6,spec.color[2]*0.6,spec.color[3]*0.6,0.8)
         local hl=btn:CreateTexture(nil,"HIGHLIGHT"); hl:SetTexture(HIGHLIGHT); hl:SetBlendMode("ADD"); hl:SetAllPoints(); hl:SetAlpha(0.15)
         local icon=btn:CreateTexture(nil,"ARTWORK"); icon:SetSize(btnH-8,btnH-8); icon:SetPoint("LEFT",4,0)
-        icon:SetTexture(TD.CLASS_ICON); local coords=TD.CLASS_COORDS[spec.family] or TD.CLASS_COORDS.paladin; icon:SetTexCoord(coords[1],coords[2],coords[3],coords[4])
+        TD.SetSpecIcon(icon,spec)
         local nl=TD.Lbl(btn,12,1,0.95,0.8); nl:SetPoint("TOPLEFT",btnH-2,-6); nl:SetWidth(btnW-btnH-6); nl:SetJustifyH("LEFT"); nl:SetText(spec.name)
         local cl=TD.Lbl(btn,11,0.9,0.75,0.2); cl:SetPoint("BOTTOMLEFT",btnH-2,6); cl:SetText(spec.baseCost.."g")
         btn.spec=spec; btn.specIdx=i
@@ -463,7 +463,7 @@ function TD.PlaceTower(specIdx,col,row)
     local tf=CreateFrame("Button",nil,TD.frames.gameArea); tf:SetSize(C-6,C-6); tf:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",cx,-cy); tf:SetFrameLevel(TD.frames.gameArea:GetFrameLevel()+5)
     TD.Tex(tf,"BACKGROUND",spec.color[1],spec.color[2],spec.color[3],0.75):SetAllPoints()
     local classIcon=tf:CreateTexture(nil,"ARTWORK"); classIcon:SetSize(C-14,C-14); classIcon:SetPoint("CENTER",0,3)
-    classIcon:SetTexture(TD.CLASS_ICON); local coords=TD.CLASS_COORDS[spec.family] or TD.CLASS_COORDS.paladin; classIcon:SetTexCoord(coords[1],coords[2],coords[3],coords[4]); classIcon:SetAlpha(0.85)
+    TD.SetSpecIcon(classIcon,spec); classIcon:SetAlpha(0.85)
     tf.tierL=TD.Lbl(tf,11,0.9,0.85,0.5); tf.tierL:SetPoint("BOTTOM",0,2); tf.tierL:SetText("T1")
     local boon=TD.currentBoonGrid[col..","..row]
     if boon then local bd=TD.BOON_DEFS[boon]; local bc=TD.Lbl(tf,10,bd.color[1],bd.color[2],bd.color[3]); bc:SetPoint("TOPRIGHT",-2,-2); bc:SetText(bd.char) end

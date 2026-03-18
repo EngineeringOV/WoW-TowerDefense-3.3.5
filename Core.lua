@@ -24,6 +24,9 @@ function TD.TS(def,stat,tier) local v=def[stat]; if type(v)=="table" then return
 
 TD.CLASS_ICON="Interface\\GLUES\\CHARACTERCREATE\\UI-CharacterCreate-Classes"
 TD.CLASS_COORDS={hunter={0,0.25,0.25,0.5},mage={0.25,0.5,0,0.25},warlock={0.75,1,0.25,0.5},druid={0.75,1,0,0.25},paladin={0,0.25,0.5,0.75}}
+function TD.SetSpecIcon(tex,spec)
+    if spec.specIcon then tex:SetTexture(spec.specIcon); tex:SetTexCoord(0,1,0,1)
+    else tex:SetTexture(TD.CLASS_ICON); local c=TD.CLASS_COORDS[spec.family] or TD.CLASS_COORDS.paladin; tex:SetTexCoord(c[1],c[2],c[3],c[4]) end end
 
 TD.FAMILIES={
     {id="hunter",name="Hunter",color={0.2,0.8,0.2},specs={"marksman","survival"}},
@@ -33,15 +36,15 @@ TD.FAMILIES={
 }
 
 TD.SPECS={
-    marksman={id="marksman",family="hunter",name="Marksman",letter="M",baseCost=50,desc="Precise long-range shots.",color={0.2,0.8,0.2},damage={16,28,48},range={130,145,165},cooldown={1.2,1.0,0.8},splash=0,slowPct=0,slowDur=0,dot=0,upgradeCost={0,35,65}},
-    survival={id="survival",family="hunter",name="Survival",letter="S",baseCost=45,desc="AoE traps, slows groups.",color={0.35,0.7,0.15},damage={9,14,23},range={100,110,120},cooldown={0.9,0.8,0.7},splash={35,45,55},slowPct={0.3,0.35,0.4},slowDur={1.5,2.0,2.5},dot=0,upgradeCost={0,30,55}},
-    frost={id="frost",family="mage",name="Frost Mage",letter="F",baseCost=60,desc="Strong slow effect.",color={0.3,0.6,1.0},damage={5,9,14},range={110,120,135},cooldown={1.2,1.0,0.85},splash=0,slowPct={0.4,0.5,0.65},slowDur={1.8,2.2,3.0},dot=0,upgradeCost={0,40,70}},
-    arcane={id="arcane",family="mage",name="Arcanist",letter="A",baseCost=75,desc="Devastating bursts.",color={0.5,0.3,1.0},damage={35,60,96},range={140,155,175},cooldown={2.6,2.3,2.0},splash=0,slowPct=0,slowDur=0,dot=0,upgradeCost={0,55,100}},
-    destruction={id="destruction",family="warlock",name="Destruction",letter="D",baseCost=80,desc="Very slow fire AoE.",color={1.0,0.4,0.1},damage={18,27,41},range={85,95,105},cooldown={2.8,2.5,2.2},splash={45,55,70},slowPct=0,slowDur=0,dot=0,upgradeCost={0,50,90}},
-    affliction={id="affliction",family="warlock",name="Affliction",letter="W",baseCost=65,desc="Damage over time.",color={0.7,0.3,0.5},damage={7,11,16},range={105,115,125},cooldown={1.0,0.9,0.8},splash=0,slowPct=0,slowDur=0,dot={5,9,14},upgradeCost={0,40,75}},
-    starfall={id="starfall",family="druid",name="Starfall",letter="B",baseCost=75,desc="Pulses ALL in range.",color={1.0,0.6,0.0},damage={5,9,13},range={100,115,130},cooldown={1.4,1.1,0.8},splash=0,slowPct=0,slowDur=0,dot=0,upgradeCost={0,50,90},pulse=true},
-    feral={id="feral",family="druid",name="Feral",letter="C",baseCost=55,desc="Fast melee swipes.",color={0.9,0.6,0.1},damage={9,15,24},range={65,72,80},cooldown={0.45,0.38,0.3},splash={25,30,40},slowPct=0,slowDur=0,dot=0,upgradeCost={0,35,65}},
-    paladin={id="paladin",family="paladin",name="Paladin",letter="P",baseCost=100,desc="Aura buffs towers.",color={1.0,0.9,0.4},damage={0,0,0},range={100,115,130},cooldown={99,99,99},splash=0,slowPct=0,slowDur=0,dot=0,upgradeCost={0,60,110},aura=true,auraDmg={0.10,0.15,0.20},auraSpd={0.10,0.15,0.20},auraRng={0,0,0.10}},
+    marksman={id="marksman",family="hunter",name="Marksman",letter="M",baseCost=50,desc="Precise long-range shots.",color={0.2,0.8,0.2},specIcon="Interface\\Icons\\Ability_Marksmanship",damage={16,28,48},range={130,145,165},cooldown={1.2,1.0,0.8},splash=0,slowPct=0,slowDur=0,dot=0,upgradeCost={0,35,65}},
+    survival={id="survival",family="hunter",name="Survival",letter="S",baseCost=45,desc="AoE traps, slows groups.",color={0.35,0.7,0.15},specIcon="Interface\\Icons\\Ability_Hunter_Explosiveshot",damage={9,14,23},range={100,110,120},cooldown={0.9,0.8,0.7},splash={35,45,55},slowPct={0.3,0.35,0.4},slowDur={1.5,2.0,2.5},dot=0,upgradeCost={0,30,55}},
+    frost={id="frost",family="mage",name="Frost Mage",letter="F",baseCost=60,desc="Strong slow effect.",color={0.3,0.6,1.0},specIcon="Interface\\Icons\\Spell_Frost_FrostBolt02",damage={5,9,14},range={110,120,135},cooldown={1.2,1.0,0.85},splash=0,slowPct={0.4,0.5,0.65},slowDur={1.8,2.2,3.0},dot=0,upgradeCost={0,40,70}},
+    arcane={id="arcane",family="mage",name="Arcanist",letter="A",baseCost=75,desc="Devastating bursts.",color={0.5,0.3,1.0},specIcon="Interface\\Icons\\Spell_Arcane_Blast",damage={35,60,96},range={140,155,175},cooldown={2.6,2.3,2.0},splash=0,slowPct=0,slowDur=0,dot=0,upgradeCost={0,55,100}},
+    destruction={id="destruction",family="warlock",name="Destruction",letter="D",baseCost=80,desc="Very slow fire AoE.",color={1.0,0.4,0.1},specIcon="Interface\\Icons\\Spell_Fire_Immolation",damage={18,27,41},range={85,95,105},cooldown={2.8,2.5,2.2},splash={45,55,70},slowPct=0,slowDur=0,dot=0,upgradeCost={0,50,90}},
+    affliction={id="affliction",family="warlock",name="Affliction",letter="W",baseCost=65,desc="Damage over time.",color={0.7,0.3,0.5},specIcon="Interface\\Icons\\Spell_Shadow_UnstableAffliction_3",damage={7,11,16},range={105,115,125},cooldown={1.0,0.9,0.8},splash=0,slowPct=0,slowDur=0,dot={5,9,14},upgradeCost={0,40,75}},
+    starfall={id="starfall",family="druid",name="Starfall",letter="B",baseCost=75,desc="Pulses ALL in range.",color={1.0,0.6,0.0},specIcon="Interface\\Icons\\Ability_Druid_Starfall",damage={5,9,13},range={100,115,130},cooldown={1.4,1.1,0.8},splash=0,slowPct=0,slowDur=0,dot=0,upgradeCost={0,50,90},pulse=true},
+    feral={id="feral",family="druid",name="Feral",letter="C",baseCost=55,desc="Fast melee swipes.",color={0.9,0.6,0.1},specIcon="Interface\\Icons\\Ability_Druid_CatForm",damage={9,15,24},range={65,72,80},cooldown={0.45,0.38,0.3},splash={25,30,40},slowPct=0,slowDur=0,dot=0,upgradeCost={0,35,65}},
+    paladin={id="paladin",family="paladin",name="Paladin",letter="P",baseCost=100,desc="Aura buffs towers.",color={1.0,0.9,0.4},specIcon="Interface\\Icons\\Spell_Holy_DevotionAura",damage={0,0,0},range={100,115,130},cooldown={99,99,99},splash=0,slowPct=0,slowDur=0,dot=0,upgradeCost={0,60,110},aura=true,auraDmg={0.10,0.15,0.20},auraSpd={0.10,0.15,0.20},auraRng={0,0,0.10}},
 }
 
 function TD.GetActiveSpecs() TD.EnsureSaved(); local s=TowerDefenseSaved.specs
