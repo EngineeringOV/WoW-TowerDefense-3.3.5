@@ -289,8 +289,10 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
         TD.UpdateSpeedBtns(); TD.UpdateHUD() end)
     TD.ui.playBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.playBtn:SetSize(50,26); TD.ui.playBtn:SetPoint("LEFT",TD.ui.pauseBtn,"RIGHT",4,0); TD.ui.playBtn:SetText(">")
     TD.ui.playBtn:SetScript("OnClick",function() TD.game.speed=1; TD.UpdateSpeedBtns() end)
-    TD.ui.ffBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.ffBtn:SetSize(60,26); TD.ui.ffBtn:SetPoint("LEFT",TD.ui.playBtn,"RIGHT",4,0); TD.ui.ffBtn:SetText(">>")
+    TD.ui.ffBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.ffBtn:SetSize(50,26); TD.ui.ffBtn:SetPoint("LEFT",TD.ui.playBtn,"RIGHT",4,0); TD.ui.ffBtn:SetText(">>")
     TD.ui.ffBtn:SetScript("OnClick",function() TD.game.speed=2; TD.UpdateSpeedBtns() end)
+    TD.ui.fffBtn=CreateFrame("Button",nil,sFrame,"UIPanelButtonTemplate"); TD.ui.fffBtn:SetSize(50,26); TD.ui.fffBtn:SetPoint("LEFT",TD.ui.ffBtn,"RIGHT",4,0); TD.ui.fffBtn:SetText(">>>")
+    TD.ui.fffBtn:SetScript("OnClick",function() TD.game.speed=3; TD.UpdateSpeedBtns() end)
     -- Auto-wave toggle
     TD.ui.autoBtn=CreateFrame("Button",nil,panel,"UIPanelButtonTemplate"); TD.ui.autoBtn:SetSize(pw,24)
     TD.ui.autoBtn:SetScript("OnClick",function() TD.game.autoWave=not TD.game.autoWave; TD.UpdateHUD() end)
@@ -326,7 +328,8 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
     uf.slBtn=CreateFrame("Button",nil,uf,"UIPanelButtonTemplate"); uf.slBtn:SetSize(150,24); uf.slBtn:SetPoint("BOTTOM",0,8); uf.slBtn:SetText("Sell"); TD.frames.upgradeFrame=uf end
 
 function TD.UpdateSpeedBtns() local s=TD.game.speed
-    TD.ui.pauseBtn:SetText(s==0 and "|cffffffff|||r|cffffffff|||r" or "||"); TD.ui.playBtn:SetText(s==1 and "|cff00ff00>|r" or ">"); TD.ui.ffBtn:SetText(s==2 and "|cff00ff00>>|r" or ">>") end
+    TD.ui.pauseBtn:SetText(s==0 and "|cffffffff|||r|cffffffff|||r" or "||"); TD.ui.playBtn:SetText(s==1 and "|cff00ff00>|r" or ">")
+    TD.ui.ffBtn:SetText(s==2 and "|cff00ff00>>|r" or ">>"); TD.ui.fffBtn:SetText(s==3 and "|cff00ff00>>>|r" or ">>>") end
 
 -- Tower buttons (2-col with class icons + tier tooltip)
 function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end; wipe(TD.ui.towerBtns)

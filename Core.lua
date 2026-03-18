@@ -3,7 +3,7 @@ TowerDefenseSaved = TowerDefenseSaved or {}
 TD.SOLID="Interface\\Buttons\\WHITE8X8"; TD.MINIMAP_CIRCLE="Interface\\Minimap\\UI-Minimap-Background"
 TD.CELL=48; TD.COLS=20; TD.ROWS=13; TD.PANEL_W=300; TD.PAD_TOP=50; TD.PAD_BOT=28
 TD.PROJ_SPEED=380; TD.SPAWN_CD=0.6; TD.BREAK_TIME=8
-TD.GOLD_ICON="|TInterface\\MoneyFrame\\UI-GoldIcon:0|t"
+TD.GOLD_ICON=" |TInterface\\MoneyFrame\\UI-GoldIcon:0|t"
 
 -- Clickable chat link helpers
 function TD.BossLink(bossId) local bd=TD.BOSS_DEFS[bossId]; if not bd then return bossId end
