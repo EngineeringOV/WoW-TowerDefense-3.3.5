@@ -450,9 +450,35 @@ function TD.CreateGrid() local ga=TD.frames.gameArea
             elseif TD.currentTriggerGrid[ck] then GameTooltip:SetOwner(self,"ANCHOR_CURSOR"); GameTooltip:AddLine("Boss Trigger",1,0.2,0.8)
                 local bId=TD.game.currentMap and TD.game.currentMap.boss; if bId and TD.BOSS_DEFS[bId] then GameTooltip:AddLine(TD.BOSS_DEFS[bId].name.." activates here",0.8,0.6,0.9) end; GameTooltip:Show() end
             if TD.game.selectedTower and not TD.currentPathGrid[ck] and not TD.currentBlockedGrid[ck] and not babeSet[ck] and not spawnSet[ck] then
-                local spec=TD.game.activeSpecs[TD.game.selectedTower]; local rng=TD.TS(spec,"range",1); local st=TD.game.equippedStats
-                if st.rangeMult then rng=rng*st.rangeMult end; local boon=TD.currentBoonGrid[ck]; if boon and TD.BOON_DEFS[boon].rngMult then rng=rng*TD.BOON_DEFS[boon].rngMult end
-                TD.ShowRange(self.col,self.row,rng) end end)
+                local spec=TD.game.activeSpecs[TD.game.selectedTower]; local st=TD.game.equippedStats
+                local cx,cy=TD.CC(self.col,self.row)
+                local fakeTower={col=self.col,row=self.row,cx=cx,cy=cy,tier=1,specIdx=TD.game.selectedTower}
+                -- Compute effective stats for preview
+                local dmg=TD.TS(spec,"damage",1); local rng=TD.TS(spec,"range",1); local cd=TD.TS(spec,"cooldown",1)
+                if st.dmgMult then dmg=dmg*st.dmgMult end; if st.rangeMult then rng=rng*st.rangeMult end; if st.cdMult then cd=cd*st.cdMult end
+                local boon=TD.currentBoonGrid[ck]; local hasBoon=false
+                if boon then local bd=TD.BOON_DEFS[boon]; hasBoon=true
+                    if bd.dmgMult then dmg=dmg*bd.dmgMult end; if bd.rngMult then rng=rng*bd.rngMult end; if bd.cdMult then cd=cd*bd.cdMult end end
+                local pD,pS,pR=TD.GetPaladinBuff(fakeTower); local hasPal=(pD>0 or pS>0 or pR>0)
+                dmg=dmg*(1+pD); cd=cd/(1+pS); rng=rng*(1+pR); if cd<0.1 then cd=0.1 end; dmg=math.floor(dmg+0.5)
+                -- Show placement preview tooltip
+                if not GameTooltip:IsShown() then GameTooltip:SetOwner(self,"ANCHOR_CURSOR") end
+                if spec.aura then
+                    GameTooltip:AddLine(spec.name.." T1",spec.color[1],spec.color[2],spec.color[3])
+                    GameTooltip:AddLine(string.format("Aura Rng: %d",rng),0.9,0.9,0.9)
+                    GameTooltip:AddLine(string.format("+%d%% dmg  +%d%% spd",TD.TS(spec,"auraDmg",1)*100,TD.TS(spec,"auraSpd",1)*100),0.9,0.9,0.9)
+                elseif spec.pulse then
+                    GameTooltip:AddLine(spec.name.." T1",spec.color[1],spec.color[2],spec.color[3])
+                    GameTooltip:AddLine(string.format("Pulse %d ALL | Rng:%d | %.2fs",dmg,rng,cd),0.9,0.9,0.9)
+                    GameTooltip:AddLine(string.format("DPS: %.1f",dmg/cd),0.7,1,0.7)
+                else
+                    GameTooltip:AddLine(spec.name.." T1",spec.color[1],spec.color[2],spec.color[3])
+                    GameTooltip:AddLine(string.format("Dmg:%d  Rng:%d  Spd:%.2fs",dmg,rng,cd),0.9,0.9,0.9)
+                    GameTooltip:AddLine(string.format("DPS: %.1f",dmg/cd),0.7,1,0.7)
+                end
+                if hasBoon then local bd=TD.BOON_DEFS[boon]; GameTooltip:AddLine(bd.name..": "..bd.desc,bd.color[1],bd.color[2],bd.color[3]) end
+                if hasPal then GameTooltip:AddLine(string.format("Paladin Aura: +%d%%dmg +%d%%spd"..(pR>0 and " +%d%%rng" or ""),pD*100,pS*100,pR*100),1,0.85,0.2) end
+                GameTooltip:Show(); TD.ShowRange(self.col,self.row,rng) end end)
         cell:SetScript("OnLeave",function() GameTooltip:Hide(); if TD.frames.rangeCircle and not TD.activeTowerPanel then TD.frames.rangeCircle:Hide() end end)
         TD.frames.cells[k]=cell end end end
 
