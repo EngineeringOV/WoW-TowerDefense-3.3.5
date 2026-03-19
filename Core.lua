@@ -225,6 +225,7 @@ TD.GIMMICK_INFO={
     ["Juggernaut"]="Slow immune bosses with healer support.",
     ["Final Boss Blitz"]="The final wave. Everything at once.",
     ["BURST"]="2.5x faster spawn rate this wave.",
+    ["BOSS"]="Map boss spawns this wave!",
 }
 
 function TD.GetChallengeStatus(chType)

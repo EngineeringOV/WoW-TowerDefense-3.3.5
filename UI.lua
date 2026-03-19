@@ -496,7 +496,7 @@ function TD.UpdateHUD() local g=TD.game
     TD.ui.autoBtn:SetText(g.autoWave and "|cff33cc33Auto Wave ON|r" or "Auto Wave OFF")
     if g.state==TD.S_IDLE then TD.ui.statusL:SetText("")
     elseif g.state==TD.S_BREAK then TD.ui.statusL:SetText("")
-    elseif g.state==TD.S_PLAY then TD.UpdateSpeedBtns(); local info=g.waveList[g.wave]; local status=(info and info.gimmickTag) or ""
+    elseif g.state==TD.S_PLAY then TD.UpdateSpeedBtns(); local info=g.waveList[g.wave]; local status=(info and info.gimmickTag) or ""; status=status:gsub("|H.-|h","")
         if g.waveImmunity then local immN={noslow="Slow Immune",nomagic="Magic Immune",nophysic="Phys Immune",nodot="DoT Immune",noaoe="AoE Immune"}
             if status~="" then status=status.." " end; status=status.."|cffee4444"..(immN[g.waveImmunity] or g.waveImmunity).."|r" end; TD.ui.statusL:SetText(status)
     elseif g.state==TD.S_OVER then TD.ui.statusL:SetText("|cffee4444Defeated W"..g.wave.."|r")

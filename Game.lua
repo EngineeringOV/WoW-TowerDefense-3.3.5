@@ -34,7 +34,7 @@ function TD.StartWave()
             if not entry.bossId and i%2==0 then entry.ambushIdx=md.ambushWaypointIdx end end
             ambushTag=" |cff00ccff[AMBUSH]|r" end end
     g.spawnTimer=0; g.state=TD.S_PLAY; g.sellMode=false; TD.UpdateHUD()
-    local tag=wi.gimmickTag and (" - "..wi.gimmickTag) or ""; local burst=wi.isBurst and " |cffff8800[BURST]|r" or ""
+    local tag=wi.gimmickTag and (" - "..wi.gimmickTag) or ""; local burst=wi.isBurst and (" |HTDG:BURST|h[|cffff8800BURST|r]|h") or ""
     local bossTag=""; if wi.spawnMapBoss then local bId=wi.bossId or g.currentMap.boss; if bId and TD.BOSS_DEFS[bId] then bossTag=" "..TD.BossLink(bId) end end
     DEFAULT_CHAT_FRAME:AddMessage(string.format("|cff00ccff[TD]|r W%d/%d (%d)%s%s%s%s",g.wave,g.totalWaves,#g.spawnQueue,tag,burst,bossTag,ambushTag))
 end
