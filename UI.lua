@@ -353,9 +353,10 @@ function TD.BuildTowerBtns() for _,b in ipairs(TD.ui.towerBtns) do b:Hide() end;
         btn:SetScript("OnClick",function() local g=TD.game; if g.state==TD.S_OVER or g.state==TD.S_WIN then return end; g.sellMode=false; TD.HideUpgrade()
             if g.selectedTower==i then g.selectedTower=nil else g.selectedTower=i end; TD.UpdateTowerBtns() end)
         btn:SetScript("OnEnter",function(self) GameTooltip:SetOwner(self,"ANCHOR_LEFT"); GameTooltip:AddLine(spec.name,spec.color[1],spec.color[2],spec.color[3]); GameTooltip:AddLine(spec.desc,0.9,0.85,0.75)
-            if spec.pulse then for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg ALL in %d / %.1fs (%.1f DPS)",ti,d,TD.TS(spec,"range",ti),cd,d/cd),1,0.8,0.3) end
-            elseif spec.aura then for ti=1,3 do GameTooltip:AddLine(string.format("T%d: Rng:%d +%d%% dmg +%d%% spd",ti,TD.TS(spec,"range",ti),TD.TS(spec,"auraDmg",ti)*100,TD.TS(spec,"auraSpd",ti)*100),1,0.9,0.4) end; GameTooltip:AddLine("Buffed towers glow gold",0.7,0.7,0.4)
-            else for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddLine(string.format("T%d: %d dmg %d rng %.1fs (%.1f DPS)",ti,d,TD.TS(spec,"range",ti),cd,d/cd),1,1,1) end end
+            local function ucost(ti) if ti==1 then return spec.baseCost else return spec.upgradeCost[ti] or 0 end end
+            if spec.pulse then for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddDoubleLine(string.format("T%d: %d dmg ALL in %d / %.1fs (%.1f DPS)",ti,d,TD.TS(spec,"range",ti),cd,d/cd),string.format("|cffffd100%d|r|cffffcc00g|r",ucost(ti)),1,0.8,0.3) end
+            elseif spec.aura then for ti=1,3 do GameTooltip:AddDoubleLine(string.format("T%d: Rng:%d +%d%% dmg +%d%% spd",ti,TD.TS(spec,"range",ti),TD.TS(spec,"auraDmg",ti)*100,TD.TS(spec,"auraSpd",ti)*100),string.format("|cffffd100%d|r|cffffcc00g|r",ucost(ti)),1,0.9,0.4) end; GameTooltip:AddLine("Buffed towers glow gold",0.7,0.7,0.4)
+            else for ti=1,3 do local d=TD.TS(spec,"damage",ti); local cd=TD.TS(spec,"cooldown",ti); GameTooltip:AddDoubleLine(string.format("T%d: %d dmg %d rng %.1fs (%.1f DPS)",ti,d,TD.TS(spec,"range",ti),cd,d/cd),string.format("|cffffd100%d|r|cffffcc00g|r",ucost(ti)),1,1,1) end end
             if TD.TS(spec,"splash",1)>0 then GameTooltip:AddLine("Splash AoE",1,0.5,0.2) end; if TD.TS(spec,"slowPct",1)>0 then GameTooltip:AddLine("Slows enemies",0.4,0.7,1) end
             if TD.TS(spec,"dot",1)>0 then GameTooltip:AddLine("DoT effect",0.7,0.3,0.5) end; GameTooltip:Show() end)
         btn:SetScript("OnLeave",function() GameTooltip:Hide() end); TD.ui.towerBtns[i]=btn end
