@@ -76,7 +76,7 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
         GameTooltip:AddLine("Training Range",0.5,0.8,1); GameTooltip:AddLine("Sandbox mode with infinite gold, lives, and waves.",0.9,0.85,0.75,true)
         GameTooltip:AddLine("/td wave <type> to set enemy type",0.7,0.7,0.7); GameTooltip:AddLine("/td str <num> to set HP scale",0.7,0.7,0.7); GameTooltip:Show() end)
     tb:SetScript("OnLeave",function() GameTooltip:Hide() end)
-    tb:SetScript("OnClick",function() TD.StartTraining() end)
+    tb:SetScript("OnClick",function() TD.game.pendingMapIndex="training"; TD.ShowEquip() end)
     local leg=TD.Lbl(m,12,0.7,0.6,0.45); leg:SetPoint("BOTTOMLEFT",m,"BOTTOMLEFT",8,8); leg:SetText("Hover cards for details")
     local sb=CreateFrame("Button",nil,m,"UIPanelButtonTemplate"); sb:SetSize(100,28); sb:SetPoint("BOTTOM",m,"BOTTOM",0,8)
     sb:SetText("Settings"); sb:SetScript("OnClick",function() TD.ShowSettings() end)
@@ -209,7 +209,8 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
     back:SetText("Back"); back:SetScript("OnClick",function() TD.equipSelItem=nil; TD.ShowMenu() end)
     TD.ui.eqPlayBtn=CreateFrame("Button",nil,ef,"UIPanelButtonTemplate"); TD.ui.eqPlayBtn:SetSize(160,32); TD.ui.eqPlayBtn:SetPoint("BOTTOMRIGHT",ef,"BOTTOMRIGHT",-pad,8)
     TD.ui.eqPlayBtn:SetText("Start Battle"); TD.ui.eqPlayBtn:SetScript("OnClick",function()
-        if TD.game.pendingMapIndex then TD.equipSelItem=nil; TD.StartMap(TD.game.pendingMapIndex) end end) end
+        if TD.game.pendingMapIndex then TD.equipSelItem=nil
+            if TD.game.pendingMapIndex=="training" then TD.StartTraining() else TD.StartMap(TD.game.pendingMapIndex) end end end) end
 
 function TD.RefreshEquip() TD.EnsureSaved()
     for s=1,3 do local sf=TD.ui.eqSlots[s]; local eqId=TowerDefenseSaved.equipped[s]
