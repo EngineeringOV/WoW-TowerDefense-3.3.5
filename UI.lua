@@ -144,10 +144,10 @@ function TD.CreateEquip() if TD.frames.equipFrame then return end
         ib:SetSize(bw,bh); ib:SetPoint("TOPLEFT",scrollChild,"TOPLEFT",2+col*(bw+6),-18-row*(bh+4))
         ib:SetBackdrop({bgFile=DIALOGBG,edgeFile=TOOLTIPBDR,edgeSize=12,tile=true,tileSize=32,insets={left=2,right=2,top=2,bottom=2}})
         ib:SetBackdropColor(0.15,0.12,0.1,0.9); ib:SetBackdropBorderColor(0.4,0.35,0.25,0.8)
-        local d=TD.ITEM_DEFS[itemId]; local iconSzI=20
-        if d.iconTex then local ic=ib:CreateTexture(nil,"ARTWORK"); ic:SetSize(iconSzI,iconSzI); ic:SetPoint("TOPLEFT",4,-4); ic:SetTexture(d.iconTex)
-        else local ic=TD.Lbl(ib,18,d.color[1],d.color[2],d.color[3]); ic:SetPoint("TOPLEFT",5,-4); ic:SetText(d.icon) end
-        ib.nameL=TD.Lbl(ib,13,0.9,0.85,0.7); ib.nameL:SetPoint("TOPLEFT",26,-4); ib.nameL:SetWidth(bw-32); ib.nameL:SetJustifyH("LEFT"); ib.nameL:SetText(d.name)
+        local d=TD.ITEM_DEFS[itemId]; local iconSzI=28
+        if d.iconTex then local ic=ib:CreateTexture(nil,"ARTWORK"); ic:SetSize(iconSzI,iconSzI); ic:SetPoint("TOPLEFT",4,-4); ic:SetTexture(d.iconTex); ib.iconTex=ic
+        else local ic=TD.Lbl(ib,22,d.color[1],d.color[2],d.color[3]); ic:SetPoint("TOPLEFT",5,-4); ic:SetText(d.icon); ib.iconLbl=ic end
+        ib.nameL=TD.Lbl(ib,13,0.9,0.85,0.7); ib.nameL:SetPoint("TOPLEFT",iconSzI+8,-4); ib.nameL:SetWidth(bw-iconSzI-14); ib.nameL:SetJustifyH("LEFT"); ib.nameL:SetText(d.name)
         local dl=TD.Lbl(ib,11,0.8,0.7,0.55); dl:SetPoint("TOPLEFT",5,-22); dl:SetWidth(bw-10); dl:SetJustifyH("LEFT"); dl:SetText(d.desc)
         ib.statL=TD.Lbl(ib,11,0.75,0.65,0.5); ib.statL:SetPoint("BOTTOM",0,4); ib.itemId=itemId
         ib:SetScript("OnClick",function() if TD.HasItem(itemId) then TD.equipSelItem=itemId; TD.RefreshEquip() end end)
@@ -217,7 +217,9 @@ function TD.RefreshEquip() TD.EnsureSaved()
         if eqId and TD.ITEM_DEFS[eqId] then local d=TD.ITEM_DEFS[eqId]; sf.itemL:SetText(d.name); sf.itemL:SetTextColor(d.color[1],d.color[2],d.color[3]); sf.descL:SetText(d.desc)
         else sf.itemL:SetText("(empty)"); sf.itemL:SetTextColor(0.5,0.45,0.35); sf.descL:SetText("") end end
     for _,ib in ipairs(TD.ui.itemBtns) do local own=TD.HasItem(ib.itemId); local eq=TD.IsEquipped(ib.itemId); local sel=TD.equipSelItem==ib.itemId
-        if not own then ib:SetBackdropColor(0.08,0.07,0.06,0.9); ib:SetBackdropBorderColor(0.2,0.18,0.12,0.5); ib.nameL:SetTextColor(0.45,0.4,0.3); ib.statL:SetText("|cff888866Locked|r")
+        if ib.iconTex then ib.iconTex:SetVertexColor(1,1,1,1) end; if ib.iconLbl then ib.iconLbl:SetAlpha(1) end
+        if not own then ib:SetBackdropColor(0.04,0.03,0.03,0.95); ib:SetBackdropBorderColor(0.12,0.10,0.08,0.5); ib.nameL:SetTextColor(0.3,0.27,0.2); ib.statL:SetText("|cff555544Locked|r")
+            if ib.iconTex then ib.iconTex:SetVertexColor(0.3,0.3,0.3,0.6) end; if ib.iconLbl then ib.iconLbl:SetAlpha(0.3) end
         elseif sel then ib:SetBackdropBorderColor(1,0.85,0.2,1); ib:SetBackdropColor(0.25,0.2,0.1,0.9); ib.nameL:SetTextColor(1,0.95,0.8); ib.statL:SetText("|cffffff88Click slot|r")
         elseif eq then local d=TD.ITEM_DEFS[ib.itemId]; ib:SetBackdropBorderColor(d.color[1]*0.8,d.color[2]*0.8,d.color[3]*0.8,0.9); ib:SetBackdropColor(0.18,0.15,0.1,0.9); ib.nameL:SetTextColor(0.9,0.85,0.7); ib.statL:SetText("|cff44aa44Equipped|r")
         else ib:SetBackdropColor(0.15,0.12,0.1,0.9); ib:SetBackdropBorderColor(0.4,0.35,0.25,0.8); ib.nameL:SetTextColor(0.8,0.75,0.6); ib.statL:SetText("") end end
