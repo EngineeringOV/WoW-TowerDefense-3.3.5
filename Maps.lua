@@ -1,4 +1,13 @@
 TD.MAPS={
+    {id="training",name="Training Range",img="EF small",difficulty="Training",diffColor={0.5,0.8,1},totalWaves=9999,startGold=99999,startLives=9999,
+        desc="Sandbox mode. Infinite gold/lives. Use /td wave <type> and /td str <number> to control waves.",rewardItem=nil,hpMult=1.0,speedMult=1.0,spawnMult=1.0,scalePower=1.6,
+        enemyBias={},burstWaves={},flavor="Practice freely",boss=nil,bossWaves={},training=true,
+        challenges={},
+        waypoints={{1,2},{17,2},{17,5},{4,5},{4,8},{17,8},{17,11},{20,11}},
+        theme={ground={0.15,0.15,0.20},path={0.30,0.30,0.35},blocked={0.10,0.10,0.15},bChar="=",bName="Dummy"},
+        blocked={{6,1},{7,1},{8,1},{10,4},{11,4},{12,3},{19,4},{20,4},{1,7},{2,7},{2,10},{2,11},{8,10},{9,10},{8,11},{9,11},{14,10},{15,10},{6,12},{6,13},{7,13},{18,6},{19,6},{20,7}},
+        boons={{10,1,"power"},{15,4,"haste"},{10,10,"range"},{6,7,"power"}},triggerTiles={},
+    },
     {id="elwynn",name="Elwynn Forest",img="EF small",difficulty="Easy",diffColor={0.2,1,0.3},totalWaves=20,startGold=90,startLives=25,
         desc="Gnolls near Goldshire.",rewardItem="arcanedust",hpMult=1.0,speedMult=1.0,spawnMult=1.0,scalePower=1.6,
         enemyBias={},burstWaves={},flavor="Standard combat",boss="hogger",bossWaves={10,20},

@@ -1,15 +1,19 @@
 TD.currentPathCells={}; TD.currentPathPoints={}
 
+TD.trainingWaveType=nil  -- nil=standard, or enemy type name / "boss" / gimmick name
+TD.trainingStr=1.0       -- HP scale multiplier for training waves
+
 function TD.StartMap(mapIndex)
     local md=TD.MAPS[mapIndex]; if not md then return end; local g=TD.game
     g.currentMap=md; g.state=TD.S_IDLE; g.speed=1; g.equippedStats=TD.GetEquippedStats(); g.activeSpecs=TD.GetActiveSpecs()
     g.gold=md.startGold+(g.equippedStats.bonusGold or 0); g.lives=md.startLives+(g.equippedStats.bonusLives or 0)
+    if md.training then TD.trainingWaveType=nil; TD.trainingStr=1.0 end
     g.wave=0; g.totalWaves=md.totalWaves; g.selectedTower=nil; g.sellMode=false; g.spawnTimer=0; g.breakTimer=0
     g.tracking={livesLost=0,maxTowers=0,sellCount=0,skippedAll=true,neverPaused=true,goldSpent=0,latelivesLost=0}; g.waveImmunity=nil
     wipe(g.towers); for _,e in ipairs(g.enemies) do if e.frame then e.frame:Hide() end end; wipe(g.enemies)
     for _,p in ipairs(g.projectiles) do if p.frame then p.frame:Hide() end end; wipe(g.projectiles); wipe(g.spawnQueue)
     if TD.frames.towerFrames then for _,tf in ipairs(TD.frames.towerFrames) do tf:Hide() end; wipe(TD.frames.towerFrames) else TD.frames.towerFrames={} end
-    g.waveList=TD.GenerateWaves(g.totalWaves,md)
+    if md.training then g.waveList={} else g.waveList=TD.GenerateWaves(g.totalWaves,md) end
     TD.currentPathCells,TD.currentPathPoints,TD.currentPathGrid=TD.BuildPath(md)
     TD.currentBlockedGrid=TD.BuildBlocked(md,TD.currentPathGrid)
     TD.currentBoonGrid=TD.BuildBoons(md,TD.currentPathGrid,TD.currentBlockedGrid)
@@ -19,8 +23,43 @@ function TD.StartMap(mapIndex)
     if md.boss and TD.BOSS_DEFS[md.boss] then DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Boss: "..TD.BossLink(md.boss).." - "..TD.BOSS_DEFS[md.boss].desc) end
 end
 
+function TD.BuildTrainingWave(waveNum)
+    local enemies={}; local count=5+waveNum*2; local wt=TD.trainingWaveType
+    if wt and TD.ENEMY_DEFS[wt] then
+        for i=1,count do enemies[#enemies+1]=wt end
+    elseif wt=="mixed" then
+        local q=math.floor(count/5)
+        for i=1,q do enemies[#enemies+1]="runner" end; for i=1,q do enemies[#enemies+1]="scout" end
+        for i=1,q do enemies[#enemies+1]="brute" end; for i=1,q do enemies[#enemies+1]="swarm" end
+        for i=1,math.max(1,math.floor(q*0.5)) do enemies[#enemies+1]="healer" end
+    else
+        for i=1,count do enemies[#enemies+1]="runner" end
+        if waveNum>=3 then for i=1,math.floor(waveNum*0.5) do enemies[#enemies+1]="scout" end end
+        if waveNum>=5 then for i=1,math.floor(waveNum*0.3) do enemies[#enemies+1]="brute" end end
+    end
+    local hpScale=(1+(waveNum-1)*0.12)*TD.trainingStr
+    local spawnBoss=(wt=="boss" or wt=="allboss")
+    local bossId=nil
+    if spawnBoss then
+        local bossIds={"hogger","redpath","tethyr","flamelash","nightbane","sartharion","marrowgar","illidan","murozond","azshara"}
+        bossId=bossIds[((waveNum-1)%#bossIds)+1]
+    end
+    return {enemies=enemies,hpScale=hpScale,gimmickTag=nil,isBurst=false,immunity=nil,spawnMapBoss=spawnBoss,bossId=bossId}
+end
+
 function TD.StartWave()
     local g=TD.game; g.wave=g.wave+1; if g.speed<1 then g.speed=1 end
+    -- Training maps: refill gold/lives, never win
+    if g.currentMap and g.currentMap.training then
+        g.gold=99999; g.lives=9999
+        local wi=TD.BuildTrainingWave(g.wave); wipe(g.spawnQueue); g.waveImmunity=wi.immunity
+        for _,tn in ipairs(wi.enemies) do g.spawnQueue[#g.spawnQueue+1]={typeName=tn,hpScale=wi.hpScale,immunity=wi.immunity} end
+        if wi.spawnMapBoss and wi.bossId then g.spawnQueue[#g.spawnQueue+1]={typeName="_mapboss",hpScale=wi.hpScale,immunity=nil,bossId=wi.bossId} end
+        g.spawnTimer=0; g.state=TD.S_PLAY; g.sellMode=false; TD.UpdateHUD()
+        local wtName=TD.trainingWaveType or "standard"
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("|cff00ccff[TD]|r Training W%d (%d) [%s x%.1f]",g.wave,#g.spawnQueue,wtName,TD.trainingStr))
+        return
+    end
     if g.wave>g.totalWaves then g.state=TD.S_WIN; TD.SaveMapProgress(g.currentMap.id,g.wave-1,g.totalWaves,g.lives,g.currentMap.startLives)
         TD.CheckChallenges(g.currentMap,g.tracking); TD.UpdateHUD(); return end
     local wi=g.waveList[g.wave]; wipe(g.spawnQueue); g.waveImmunity=wi.immunity
@@ -77,7 +116,7 @@ function TD.SpawnEnemy(tn,hpScale,immunity,startIdx)
     local mhp=math.floor(d.hp*hpScale); local spd=d.speed; if md and md.speedMult then spd=spd*md.speedMult end
     if immunity then ef.immBar:SetAlpha(0.8)
         if immunity=="nomagic" then ef.immBar:SetVertexColor(0.4,0.4,1,0.8) elseif immunity=="nophysic" then ef.immBar:SetVertexColor(0.8,0.6,0.2,0.8)
-        elseif immunity=="noslow" then ef.immBar:SetVertexColor(0.3,0.8,1,0.8) elseif immunity=="nodot" then ef.immBar:SetVertexColor(0.7,0.3,0.7,0.8)
+        elseif immunity=="noslow" then ef.immBar:SetVertexColor(0.3,0.8,1,0.8) elseif immunity=="bossnoslow" then ef.immBar:SetVertexColor(0.4,0.7,0.9,0.8) elseif immunity=="nodot" then ef.immBar:SetVertexColor(0.7,0.3,0.7,0.8)
         elseif immunity=="noaoe" then ef.immBar:SetVertexColor(1,0.5,0.2,0.8) else ef.immBar:SetVertexColor(0.8,0.2,0.2,0.8) end
     else ef.immBar:SetAlpha(0) end
     ef.flash:SetAlpha(0); if ef.nameLabel then ef.nameLabel:SetText(""); ef.nameLabel:Hide() end
@@ -153,7 +192,7 @@ function TD.UpdateBossAbilities(en,elapsed)
         if ab.trigger=="onHpPct" and not ab.done and pct<=ab.pct then ab.done=true
             if ab.action=="enrage" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.enraged=true; en.dmgReduce=ab.dmgReduce or 0; en.frame.body:SetVertexColor(1,0.3,0.1,1)
                 DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." |cffff4444ENRAGED!|r")
-            elseif ab.action=="metamorph" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.metamorphed=true; en.regenPct=ab.regenPct; en.immunity="noslow"; en.frame.body:SetVertexColor(0.1,0.9,0.1,1)
+            elseif ab.action=="metamorph" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.metamorphed=true; en.regenPct=ab.regenPct; en.immunity="bossnoslow"; en.frame.body:SetVertexColor(0.1,0.9,0.1,1)
                 DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." |cff00ff00METAMORPHOSIS!|r")
             elseif ab.action=="rewind" then en.hp=math.floor(en.maxHP*(ab.healPct or 0.5)); en.frame.body:SetVertexColor(0.9,0.8,0.2,1)
                 DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." |cffffd700REWINDS TIME!|r HP restored to "..math.floor((ab.healPct or 0.5)*100).."%!") end end
@@ -254,7 +293,8 @@ function TD.DamageEnemy(en,damage,tower,isSplash)
                 DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[TD]|r Boss killed! +"..st.lifeOnBossKill.." life restored!") end
             DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." defeated! +"..rw..TD.GOLD_ICON) end
     else
-        if imm~="noslow" then local ti=tower.tier; local sp=TD.TS(spec,"slowPct",ti); local sd=TD.TS(spec,"slowDur",ti)
+        local canSlow=(imm~="noslow") and (imm~="bossnoslow" or spec.id=="frost")
+        if canSlow then local ti=tower.tier; local sp=TD.TS(spec,"slowPct",ti); local sd=TD.TS(spec,"slowDur",ti)
             if st.slowDurMult and sd>0 then sd=sd*st.slowDurMult end; if sp>0 then en.speed=en.baseSpeed*(1-sp); en.slowTimer=sd end
             -- Proc slow from item (only if tower doesn't already slow)
             if st.procSlowChance and sp==0 and math.random()<st.procSlowChance then
@@ -282,7 +322,9 @@ function TD.UpdateEnemies(elapsed) local g=TD.game; local rem={}
                         o.hp=o.hp-est.deathSplash; TD.FlashEnemy(o,1,0.6,0.2) end end end
             else local pathPts=e.ownPath or TD.currentPathPoints; local tgt=pathPts[e.pathIndex]
                 if not tgt then g.lives=g.lives-1; g.tracking.livesLost=g.tracking.livesLost+1; if g.wave>15 then g.tracking.latelivesLost=g.tracking.latelivesLost+1 end
-                    e.alive=false; e.frame:Hide(); rem[#rem+1]=i; if g.lives<=0 then g.state=TD.S_OVER; TD.SaveMapProgress(g.currentMap.id,g.wave,g.totalWaves,0,g.currentMap.startLives) end
+                    e.alive=false; e.frame:Hide(); rem[#rem+1]=i
+                    if g.currentMap and g.currentMap.training then g.lives=9999
+                    elseif g.lives<=0 then g.state=TD.S_OVER; TD.SaveMapProgress(g.currentMap.id,g.wave,g.totalWaves,0,g.currentMap.startLives) end
                 else local dx=tgt.x-e.x; local dy=tgt.y-e.y; local dist=TD.Dist(e.x,e.y,tgt.x,tgt.y); local mv=e.speed*elapsed
                     if mv>=dist then e.x=tgt.x; e.y=tgt.y; e.pathIndex=e.pathIndex+1 else e.x=e.x+(dx/dist)*mv; e.y=e.y+(dy/dist)*mv end
                     e.frame:ClearAllPoints(); e.frame:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",e.x,-e.y)
@@ -354,7 +396,14 @@ function TD.UpdateSpawning(elapsed) local g=TD.game; if #g.spawnQueue==0 then re
         local entry=table.remove(g.spawnQueue,1); if entry.bossId then TD.SpawnMapBoss(entry.bossId,entry.hpScale) else TD.SpawnEnemy(entry.typeName,entry.hpScale,entry.immunity,entry.ambushIdx) end end end
 
 function TD.CheckWaveComplete() local g=TD.game; if g.state~=TD.S_PLAY then return end
+    -- Training: refill lives/gold continuously
+    if g.currentMap and g.currentMap.training then g.lives=9999; g.gold=99999 end
     if #g.spawnQueue==0 and #g.enemies==0 then
+        if g.currentMap and g.currentMap.training then
+            -- Training never ends - just go to break and start next wave
+            g.state=TD.S_BREAK; g.waveImmunity=nil; g.gold=99999; g.lives=9999
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Training W"..g.wave.." cleared!")
+            if g.autoWave then TD.StartWave() else g.speed=0 end; TD.UpdateHUD(); return end
         if g.wave>=g.totalWaves then g.state=TD.S_WIN; TD.SaveMapProgress(g.currentMap.id,g.wave,g.totalWaves,g.lives,g.currentMap.startLives)
             TD.CheckChallenges(g.currentMap,g.tracking); TD.UpdateHUD(); return end
         g.state=TD.S_BREAK; g.waveImmunity=nil; local bonus=3+g.wave; local st=g.equippedStats
@@ -415,7 +464,18 @@ local function Init() TD.EnsureSaved(); TD.CreateMain(); TD.CreateMenu(); TD.Cre
         return origRef(link,text,button,chatFrame) end
     DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[Tower Defense]|r v5.1. |cff00ff00/td|r to play. Click gimmick names in chat for info.") end
 SLASH_TOWERDEFENSE1="/td"; SLASH_TOWERDEFENSE2="/towerdefense"
-SlashCmdList["TOWERDEFENSE"]=function(msg) if msg=="reset" then TowerDefenseSaved={}; TD.EnsureSaved(); if TD.frames.menuFrame then TD.RefreshMenu() end
+SlashCmdList["TOWERDEFENSE"]=function(msg)
+    -- Training wave controls
+    if msg:find("^wave ") then local wt=msg:sub(6):lower():match("^%S+")
+        if wt=="standard" or wt=="normal" then TD.trainingWaveType=nil
+        elseif wt=="mixed" or wt=="boss" or wt=="allboss" then TD.trainingWaveType=wt
+        elseif TD.ENEMY_DEFS[wt] then TD.trainingWaveType=wt
+        else DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Valid types: runner, scout, brute, healer, swarm, boss, mixed, standard"); return end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Training wave type: |cffffd700"..(TD.trainingWaveType or "standard").."|r"); return end
+    if msg:find("^str ") then local n=tonumber(msg:sub(5))
+        if n and n>0 then TD.trainingStr=n; DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Training strength: |cffffd700"..string.format("%.1f",n).."|r")
+        else DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Usage: /td str <number> (e.g. /td str 2.5)") end; return end
+    if msg=="reset" then TowerDefenseSaved={}; TD.EnsureSaved(); if TD.frames.menuFrame then TD.RefreshMenu() end
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r All progress, items, and specs have been reset."); return end
     if msg=="itsasecret" then TD.EnsureSaved()
         for _,m in ipairs(TD.MAPS) do if not m.secret or m.id=="cavernstime" then TowerDefenseSaved.maps[m.id]={bestWave=m.totalWaves,completed=true,stars=1} end end

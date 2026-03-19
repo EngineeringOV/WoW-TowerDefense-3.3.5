@@ -306,7 +306,7 @@ function TD.CreateGameScreen() if TD.frames.gameFrame then return end
         GameTooltip:SetOwner(self,"ANCHOR_LEFT"); GameTooltip:AddLine("Wave "..g.wave.." Info",0.9,0.8,0.5)
         if info.gimmickTag then local clean=info.gimmickTag:gsub("|c%x%x%x%x%x%x%x%x",""):gsub("|r",""):gsub("|H.-|h",""):gsub("|h","")
             GameTooltip:AddLine(clean,1,0.8,0.3); local gi=TD.GIMMICK_INFO[clean]; if gi then GameTooltip:AddLine(gi,0.9,0.85,0.75,true) end end
-        if g.waveImmunity then local immN={noslow="Slow Immune",nomagic="Magic Immune",nophysic="Physical Immune",nodot="DoT Immune",noaoe="AoE Immune"}
+        if g.waveImmunity then local immN={noslow="Slow Immune",bossnoslow="Frost Slow Only",nomagic="Magic Immune",nophysic="Physical Immune",nodot="DoT Immune",noaoe="AoE Immune"}
             GameTooltip:AddLine(immN[g.waveImmunity] or g.waveImmunity,1,0.4,0.4) end
         if info.isBurst then GameTooltip:AddLine("BURST: 2.5x faster spawn rate",1,0.6,0) end; GameTooltip:Show() end)
     TD.ui.statusFrame:SetScript("OnLeave",function() GameTooltip:Hide() end)
@@ -498,7 +498,7 @@ function TD.UpdateHUD() local g=TD.game
     if g.state==TD.S_IDLE then TD.ui.statusL:SetText("")
     elseif g.state==TD.S_BREAK then TD.ui.statusL:SetText("")
     elseif g.state==TD.S_PLAY then TD.UpdateSpeedBtns(); local info=g.waveList[g.wave]; local status=(info and info.gimmickTag) or ""; status=status:gsub("|H.-|h","")
-        if g.waveImmunity then local immN={noslow="Slow Immune",nomagic="Magic Immune",nophysic="Phys Immune",nodot="DoT Immune",noaoe="AoE Immune"}
+        if g.waveImmunity then local immN={noslow="Slow Immune",bossnoslow="Frost Slow Only",nomagic="Magic Immune",nophysic="Phys Immune",nodot="DoT Immune",noaoe="AoE Immune"}
             if status~="" then status=status.." " end; status=status.."|cffee4444"..(immN[g.waveImmunity] or g.waveImmunity).."|r" end; TD.ui.statusL:SetText(status)
     elseif g.state==TD.S_OVER then TD.ui.statusL:SetText("|cffee4444Defeated W"..g.wave.."|r")
     elseif g.state==TD.S_WIN then TD.ui.statusL:SetText("|cff33cc33Map Complete!|r") end
@@ -509,10 +509,18 @@ function TD.UpdateHUD() local g=TD.game
         if imm=="nomagic" and sp.family=="mage" then warn="|cffee4444IMMUNE|r"
         elseif imm=="nophysic" and sp.family=="hunter" then warn="|cffee4444IMMUNE|r"
         elseif imm=="noslow" and type(sp.slowPct)=="table" and sp.slowPct[1]>0 then warn="|cffddaa44No Slow|r"
+        elseif imm=="bossnoslow" and type(sp.slowPct)=="table" and sp.slowPct[1]>0 and sp.id~="frost" then warn="|cffddaa44No Slow|r"
         elseif imm=="nodot" and type(sp.dot)=="table" and sp.dot[1]>0 then warn="|cffddaa44No DoT|r"
         elseif imm=="noaoe" and (sp.pulse or (type(sp.splash)=="table" and sp.splash[1]>0)) then warn="|cffddaa44No AoE|r" end
         btn.immLabel:SetText(warn) end
-    local lines=TD.WavePreview(g.waveList,g.wave,5); for i=1,5 do TD.ui.pvLines[i]:SetText(lines[i] or "") end
+    if g.currentMap and g.currentMap.training then
+        local wt=TD.trainingWaveType or "standard"
+        TD.ui.pvLines[1]:SetText("|cff80c0ff/td wave <type>|r: "..wt)
+        TD.ui.pvLines[2]:SetText("|cff80c0ff/td str <num>|r: "..string.format("%.1f",TD.trainingStr))
+        TD.ui.pvLines[3]:SetText("Types: runner scout brute")
+        TD.ui.pvLines[4]:SetText("healer swarm boss mixed")
+        TD.ui.pvLines[5]:SetText("")
+    else local lines=TD.WavePreview(g.waveList,g.wave,5); for i=1,5 do TD.ui.pvLines[i]:SetText(lines[i] or "") end end
     -- Challenge tracker
     if TD.ui.challengeLines and g.currentMap and g.currentMap.challenges then
         for i=1,3 do local ch=g.currentMap.challenges[i]; local cl=TD.ui.challengeLines[i]
