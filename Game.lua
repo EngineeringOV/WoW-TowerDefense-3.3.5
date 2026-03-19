@@ -115,6 +115,22 @@ function TD.FlashEnemy(en,r,g,b)
     if not en.frame or not en.frame.flash then return end
     en.frame.flash:SetVertexColor(r or 1,g or 1,b or 1,0.7); en.flashTimer=0.15 end
 
+-- Death effect (brief expanding red X)
+TD.frames.deathFxPool={}; TD.deathFxList={}
+function TD.SpawnDeathFx(x,y,size)
+    local fx; for _,f in ipairs(TD.frames.deathFxPool) do if not f:IsShown() then fx=f; break end end
+    if not fx then fx=TD.Lbl(TD.frames.gameArea,14,1,0.15,0.1); fx:SetDrawLayer("OVERLAY",6); TD.frames.deathFxPool[#TD.frames.deathFxPool+1]=fx end
+    fx:SetTextColor(1,0.15,0.1,1); fx:SetAlpha(1); fx:SetText("X")
+    local fs=math.max(12,math.floor((size or 16)*0.9))
+    fx:SetFont(fx:GetFont() and select(1,fx:GetFont()) or "Fonts\\FRIZQT__.TTF",fs,"OUTLINE")
+    fx:ClearAllPoints(); fx:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",x,-y); fx:Show()
+    TD.deathFxList[#TD.deathFxList+1]={fs=fx,age=0,maxAge=0.45} end
+function TD.UpdateDeathFx(elapsed) local rem={}
+    for i,d in ipairs(TD.deathFxList) do d.age=d.age+elapsed
+        if d.age>=d.maxAge then d.fs:Hide(); rem[#rem+1]=i
+        else d.fs:SetAlpha(1-(d.age/d.maxAge)) end
+    end; for i=#rem,1,-1 do table.remove(TD.deathFxList,rem[i]) end end
+
 -- Combat text (floating damage numbers)
 TD.frames.combatTextPool={}; TD.combatTexts={}
 function TD.SpawnCombatText(x,y,text,r,g,b)
@@ -222,7 +238,7 @@ function TD.DamageEnemy(en,damage,tower,isSplash)
     if st.doubleHitChance and math.random()<st.doubleHitChance then damage=damage*2; TD.FlashEnemy(en,0.4,0.8,1) end
     en.hp=en.hp-damage; if en.isBoss then TD.BossOnHit(en) end
     TD.SpawnCombatText(en.x+math.random(-8,8),en.y-6,tostring(damage),1,0.9,0.2)
-    if en.hp<=0 then en.alive=false; en.frame:Hide()
+    if en.hp<=0 then en.alive=false; TD.SpawnDeathFx(en.x,en.y,en.frame:GetWidth()); en.frame:Hide()
         local rw=en.reward; if st.goldMult then rw=math.floor(rw*st.goldMult) end
         if st.flatBounty then rw=rw+st.flatBounty end
         if st.splashBounty and isSplash then rw=rw+st.splashBounty end
@@ -255,7 +271,7 @@ function TD.UpdateEnemies(elapsed) local g=TD.game; local rem={}
             if e.isBoss then TD.UpdateBossAbilities(e,elapsed) end
             -- Flash timer
             if e.flashTimer and e.flashTimer>0 then e.flashTimer=e.flashTimer-elapsed; if e.flashTimer<=0 then e.frame.flash:SetAlpha(0) end end
-            if e.hp<=0 then e.alive=false; e.frame:Hide(); rem[#rem+1]=i
+            if e.hp<=0 then e.alive=false; TD.SpawnDeathFx(e.x,e.y,e.frame:GetWidth()); e.frame:Hide(); rem[#rem+1]=i
                 local rw=e.reward; local est=g.equippedStats
                 if est.goldMult then rw=math.floor(rw*est.goldMult) end
                 if est.flatBounty then rw=rw+est.flatBounty end
@@ -369,7 +385,7 @@ local function OnUpdate(self,elapsed)
     if g.state==TD.S_BREAK then uiAcc=uiAcc+elapsed; if uiAcc>=0.3 then uiAcc=0; TD.AutoUpgradeTowers(); TD.UpdateHUD() end; return end
     local dt=elapsed*(g.speed or 1); if dt<=0 then uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.UpdateHUD() end; return end
     TD.UpdateSpawning(dt); TD.UpdateEnemies(dt); TD.UpdateHealers(dt); TD.UpdateTowers(dt); TD.UpdateProjectiles(dt)
-    TD.UpdateCombatText(dt); TD.UpdateAuraVisuals(elapsed); TD.CheckWaveComplete()
+    TD.UpdateCombatText(dt); TD.UpdateDeathFx(dt); TD.UpdateAuraVisuals(elapsed); TD.CheckWaveComplete()
     uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.AutoUpgradeTowers(); TD.UpdateHUD() end end
 
 local function Init() TD.EnsureSaved(); TD.CreateMain(); TD.CreateMenu(); TD.CreateGameScreen()
