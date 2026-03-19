@@ -3,17 +3,34 @@ TD.currentPathCells={}; TD.currentPathPoints={}
 TD.trainingWaveType=nil  -- nil=standard, or enemy type name / "boss" / gimmick name
 TD.trainingStr=1.0       -- HP scale multiplier for training waves
 
-function TD.StartMap(mapIndex)
-    local md=TD.MAPS[mapIndex]; if not md then return end; local g=TD.game
+function TD.StartTraining()
+    local md=TD.TRAINING_MAP; local g=TD.game
     g.currentMap=md; g.state=TD.S_IDLE; g.speed=1; g.equippedStats=TD.GetEquippedStats(); g.activeSpecs=TD.GetActiveSpecs()
-    g.gold=md.startGold+(g.equippedStats.bonusGold or 0); g.lives=md.startLives+(g.equippedStats.bonusLives or 0)
-    if md.training then TD.trainingWaveType=nil; TD.trainingStr=1.0 end
+    g.gold=md.startGold; g.lives=md.startLives; TD.trainingWaveType=nil; TD.trainingStr=1.0
     g.wave=0; g.totalWaves=md.totalWaves; g.selectedTower=nil; g.sellMode=false; g.spawnTimer=0; g.breakTimer=0
     g.tracking={livesLost=0,maxTowers=0,sellCount=0,skippedAll=true,neverPaused=true,goldSpent=0,latelivesLost=0}; g.waveImmunity=nil
     wipe(g.towers); for _,e in ipairs(g.enemies) do if e.frame then e.frame:Hide() end end; wipe(g.enemies)
     for _,p in ipairs(g.projectiles) do if p.frame then p.frame:Hide() end end; wipe(g.projectiles); wipe(g.spawnQueue)
     if TD.frames.towerFrames then for _,tf in ipairs(TD.frames.towerFrames) do tf:Hide() end; wipe(TD.frames.towerFrames) else TD.frames.towerFrames={} end
-    if md.training then g.waveList={} else g.waveList=TD.GenerateWaves(g.totalWaves,md) end
+    g.waveList={}
+    TD.currentPathCells,TD.currentPathPoints,TD.currentPathGrid=TD.BuildPath(md)
+    TD.currentBlockedGrid=TD.BuildBlocked(md,TD.currentPathGrid)
+    TD.currentBoonGrid=TD.BuildBoons(md,TD.currentPathGrid,TD.currentBlockedGrid)
+    TD.currentTriggerGrid=TD.BuildTriggers(md,TD.currentPathGrid)
+    TD.CreateGrid(); TD.HideUpgrade(); TD.BuildTowerBtns(); TD.ui.mapTitleL:SetText(md.name); TD.UpdateHUD(); TD.ShowGame()
+    DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Training Range - Infinite waves. /td wave <type>, /td str <num>")
+end
+
+function TD.StartMap(mapIndex)
+    local md=TD.MAPS[mapIndex]; if not md then return end; local g=TD.game
+    g.currentMap=md; g.state=TD.S_IDLE; g.speed=1; g.equippedStats=TD.GetEquippedStats(); g.activeSpecs=TD.GetActiveSpecs()
+    g.gold=md.startGold+(g.equippedStats.bonusGold or 0); g.lives=md.startLives+(g.equippedStats.bonusLives or 0)
+    g.wave=0; g.totalWaves=md.totalWaves; g.selectedTower=nil; g.sellMode=false; g.spawnTimer=0; g.breakTimer=0
+    g.tracking={livesLost=0,maxTowers=0,sellCount=0,skippedAll=true,neverPaused=true,goldSpent=0,latelivesLost=0}; g.waveImmunity=nil
+    wipe(g.towers); for _,e in ipairs(g.enemies) do if e.frame then e.frame:Hide() end end; wipe(g.enemies)
+    for _,p in ipairs(g.projectiles) do if p.frame then p.frame:Hide() end end; wipe(g.projectiles); wipe(g.spawnQueue)
+    if TD.frames.towerFrames then for _,tf in ipairs(TD.frames.towerFrames) do tf:Hide() end; wipe(TD.frames.towerFrames) else TD.frames.towerFrames={} end
+    g.waveList=TD.GenerateWaves(g.totalWaves,md)
     TD.currentPathCells,TD.currentPathPoints,TD.currentPathGrid=TD.BuildPath(md)
     TD.currentBlockedGrid=TD.BuildBlocked(md,TD.currentPathGrid)
     TD.currentBoonGrid=TD.BuildBoons(md,TD.currentPathGrid,TD.currentBlockedGrid)

@@ -71,6 +71,12 @@ function TD.CreateMenu() if TD.frames.menuFrame then return end
     menuBar:SetValue(0); menuBar:SetScript("OnValueChanged",function(self,val) menuScroll:SetVerticalScroll(val) end)
     menuScroll:EnableMouseWheel(true); menuScroll:SetScript("OnMouseWheel",function(self,delta) local cur=menuBar:GetValue(); if delta>0 then menuBar:SetValue(math.max(0,cur-60)) else local _,mx=menuBar:GetMinMaxValues(); menuBar:SetValue(math.min(mx,cur+60)) end end)
     TD.ui.menuScroll=menuScroll; TD.ui.menuBar=menuBar; TD.ui.menuChild=menuChild; TD.ui.menuCardSize=cs; TD.ui.menuGridLeft=gridLeft; TD.ui.menuPR=pR; TD.ui.menuGX=gX; TD.ui.menuGY=gY; TD.ui.menuVisH=visH
+    local tb=CreateFrame("Button",nil,m,"UIPanelButtonTemplate"); tb:SetSize(120,24); tb:SetPoint("TOPLEFT",m,"TOPLEFT",8,8)
+    tb:SetText("Training Range"); tb:SetScript("OnEnter",function(self) GameTooltip:SetOwner(self,"ANCHOR_RIGHT")
+        GameTooltip:AddLine("Training Range",0.5,0.8,1); GameTooltip:AddLine("Sandbox mode with infinite gold, lives, and waves.",0.9,0.85,0.75,true)
+        GameTooltip:AddLine("/td wave <type> to set enemy type",0.7,0.7,0.7); GameTooltip:AddLine("/td str <num> to set HP scale",0.7,0.7,0.7); GameTooltip:Show() end)
+    tb:SetScript("OnLeave",function() GameTooltip:Hide() end)
+    tb:SetScript("OnClick",function() TD.StartTraining() end)
     local leg=TD.Lbl(m,12,0.7,0.6,0.45); leg:SetPoint("BOTTOMLEFT",m,"BOTTOMLEFT",8,8); leg:SetText("Hover cards for details")
     local sb=CreateFrame("Button",nil,m,"UIPanelButtonTemplate"); sb:SetSize(100,28); sb:SetPoint("BOTTOM",m,"BOTTOM",0,8)
     sb:SetText("Settings"); sb:SetScript("OnClick",function() TD.ShowSettings() end)
