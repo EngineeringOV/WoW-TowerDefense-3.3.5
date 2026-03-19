@@ -173,13 +173,14 @@ function TD.FlashEnemy(en,r,g,b)
 
 -- Death effect (brief expanding red X)
 TD.frames.deathFxPool={}; TD.deathFxList={}
+local function GetOverlay() if not TD.frames.fxOverlay then local o=CreateFrame("Frame",nil,TD.frames.gameArea); o:SetAllPoints(); o:SetFrameLevel(TD.frames.gameArea:GetFrameLevel()+20); TD.frames.fxOverlay=o end; return TD.frames.fxOverlay end
 function TD.SpawnDeathFx(x,y,size)
     local fx; for _,f in ipairs(TD.frames.deathFxPool) do if not f:IsShown() then fx=f; break end end
-    if not fx then fx=TD.Lbl(TD.frames.gameArea,14,1,0.15,0.1); fx:SetDrawLayer("OVERLAY",6); TD.frames.deathFxPool[#TD.frames.deathFxPool+1]=fx end
+    if not fx then fx=TD.Lbl(GetOverlay(),14,1,0.15,0.1); fx:SetDrawLayer("OVERLAY",6); TD.frames.deathFxPool[#TD.frames.deathFxPool+1]=fx end
     fx:SetTextColor(1,0.15,0.1,1); fx:SetAlpha(1); fx:SetText("X")
     local fs=math.max(12,math.floor((size or 16)*0.9))
     fx:SetFont(fx:GetFont() and select(1,fx:GetFont()) or "Fonts\\FRIZQT__.TTF",fs,"OUTLINE")
-    fx:ClearAllPoints(); fx:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",x,-y); fx:Show()
+    fx:ClearAllPoints(); fx:SetPoint("CENTER",GetOverlay(),"TOPLEFT",x,-y); fx:Show()
     TD.deathFxList[#TD.deathFxList+1]={fs=fx,age=0,maxAge=0.45} end
 function TD.UpdateDeathFx(elapsed) local rem={}
     for i,d in ipairs(TD.deathFxList) do d.age=d.age+elapsed
@@ -192,14 +193,14 @@ TD.frames.combatTextPool={}; TD.combatTexts={}
 function TD.SpawnCombatText(x,y,text,r,g,b)
     if not TD.GetSetting("combatText") then return end
     local fs; for _,ct in ipairs(TD.frames.combatTextPool) do if not ct:IsShown() then fs=ct; break end end
-    if not fs then fs=TD.Lbl(TD.frames.gameArea,11,1,1,1); fs:SetDrawLayer("OVERLAY",7); TD.frames.combatTextPool[#TD.frames.combatTextPool+1]=fs end
+    if not fs then fs=TD.Lbl(GetOverlay(),11,1,1,1); fs:SetDrawLayer("OVERLAY",7); TD.frames.combatTextPool[#TD.frames.combatTextPool+1]=fs end
     fs:SetTextColor(r or 1,g or 1,b or 1,1); fs:SetAlpha(1); fs:SetText(text)
-    fs:ClearAllPoints(); fs:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",x,-y); fs:Show()
+    fs:ClearAllPoints(); fs:SetPoint("CENTER",GetOverlay(),"TOPLEFT",x,-y); fs:Show()
     TD.combatTexts[#TD.combatTexts+1]={fs=fs,x=x,y=y,age=0,maxAge=0.7} end
 function TD.UpdateCombatText(elapsed) local rem={}
     for i,ct in ipairs(TD.combatTexts) do ct.age=ct.age+elapsed
         if ct.age>=ct.maxAge then ct.fs:Hide(); rem[#rem+1]=i
-        else ct.y=ct.y-35*elapsed; ct.fs:ClearAllPoints(); ct.fs:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",ct.x,-ct.y); ct.fs:SetAlpha(1-(ct.age/ct.maxAge)) end
+        else ct.y=ct.y-35*elapsed; ct.fs:ClearAllPoints(); ct.fs:SetPoint("CENTER",GetOverlay(),"TOPLEFT",ct.x,-ct.y); ct.fs:SetAlpha(1-(ct.age/ct.maxAge)) end
     end; for i=#rem,1,-1 do table.remove(TD.combatTexts,rem[i]) end end
 
 -- Boss abilities (unchanged logic)
