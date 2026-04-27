@@ -1,6 +1,6 @@
-local function GLink(tag,color)
+local function GLink(tag)
     local clean=tag:gsub("|c%x%x%x%x%x%x%x%x",""):gsub("|r","")
-    return "|HTDG:"..clean.."|h"..tag.."|h"
+    return "|HTDG:"..clean.."|h["..tag.."]|h"
 end
 
 local GIMMICKS={
@@ -51,6 +51,7 @@ function TD.WaveSummary(info) local counts={}; for _,t in ipairs(info.enemies) d
 
 function TD.WavePreview(waveList,cur,n) n=n or 5; local lines={}
     for i=1,n do local w=cur+i; if w>#waveList then break end; local info=waveList[w]
-        local s=TD.WaveSummary(info); local tag=info.gimmickTag or ""; if tag~="" then tag=" "..tag end
-        local burst=info.isBurst and " |cffff8800BURST|r" or ""; local bossTag=info.spawnMapBoss and " |cffff00ffBOSS|r" or ""
+        local s=TD.WaveSummary(info); local tag=info.gimmickTag or ""
+        if tag~="" then tag=" "..tag:gsub("|H.-|h","") end
+        local burst=info.isBurst and " |cffff8800[BURST]|r" or ""; local bossTag=info.spawnMapBoss and " |cffff00ff[BOSS]|r" or ""
         lines[#lines+1]=string.format("W%d: %s%s%s%s",w,s,tag,burst,bossTag) end; return lines end

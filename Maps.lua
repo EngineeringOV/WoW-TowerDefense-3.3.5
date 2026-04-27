@@ -1,3 +1,13 @@
+TD.TRAINING_MAP={id="training",name="Training Range",img="EF small",difficulty="Training",diffColor={0.5,0.8,1},totalWaves=9999,startGold=99999,startLives=9999,
+    desc="Sandbox mode. Infinite gold/lives. Use /td wave <type> and /td str <number> to control waves.",rewardItem=nil,hpMult=1.0,speedMult=1.0,spawnMult=1.0,scalePower=1.6,
+    enemyBias={},burstWaves={},flavor="Practice freely",boss=nil,bossWaves={},training=true,
+    challenges={},
+    waypoints={{1,2},{17,2},{17,5},{4,5},{4,8},{17,8},{17,11},{20,11}},
+    theme={ground={0.15,0.15,0.20},path={0.30,0.30,0.35},blocked={0.10,0.10,0.15},bChar="=",bName="Dummy"},
+    blocked={{6,1},{7,1},{8,1},{10,4},{11,4},{12,3},{19,4},{20,4},{1,7},{2,7},{2,10},{2,11},{8,10},{9,10},{8,11},{9,11},{14,10},{15,10},{6,12},{6,13},{7,13},{18,6},{19,6},{20,7}},
+    boons={{10,1,"power"},{15,4,"haste"},{10,10,"range"},{6,7,"power"}},triggerTiles={},
+}
+
 TD.MAPS={
     {id="elwynn",name="Elwynn Forest",img="EF small",difficulty="Easy",diffColor={0.2,1,0.3},totalWaves=20,startGold=90,startLives=25,
         desc="Gnolls near Goldshire.",rewardItem="arcanedust",hpMult=1.0,speedMult=1.0,spawnMult=1.0,scalePower=1.6,
@@ -33,8 +43,8 @@ TD.MAPS={
         boons={{6,5,"power"},{10,7,"range"},{14,10,"haste"},{3,7,"power"},{17,7,"range"}},triggerTiles={{8,7},{16,7}},
     },
     {id="searing",name="Searing Gorge",img="SG small",difficulty="Hard",diffColor={1,0.3,0.2},totalWaves=30,startGold=105,startLives=18,
-        desc="Lava corridors. Fire-shielded ambassador.",rewardItem="moltenfrag",hpMult=1.25,speedMult=0.9,spawnMult=1.1,scalePower=2.0,
-        enemyBias={brute=2,healer=1},burstWaves={},flavor="Tanky enemies, +25% HP",boss="flamelash",bossWaves={15,30},
+        desc="Lava corridors. Fire-shielded ambassador.",rewardItem="moltenfrag",hpMult=1.5,speedMult=0.9,spawnMult=1.1,scalePower=2.0,
+        enemyBias={brute=2,healer=1},burstWaves={},flavor="Tanky enemies, +50% HP",boss="flamelash",bossWaves={15,30},
         challenges={{id="sear_1",type="flawless",reward={item="darkironband"},rewardText="Dark Iron Band"},
                     {id="sear_2",type="pauper",reward={item="lavacoreshard",spec="feral"},rewardText="Lava Core Shard + Feral"},
                     {id="sear_3",type="endurance",reward={item="plaguevial"},rewardText="Plague Vial"}},
@@ -104,25 +114,33 @@ TD.MAPS={
         triggerTiles={{3,7},{12,10},{14,1}},
     },
     -- Secret naga map - unlocked by completing Caverns of Time
-    {id="azshara",name="Depths of Azshara",img="AZ small",difficulty="Mythic",diffColor={0.4,0.2,0.9},totalWaves=60,startGold=175,startLives=8,
-        desc="Queen Azshara awaits in the deep. Naga ambush from below. Survive the abyss.",rewardItem="tidalscepter",hpMult=1.5,speedMult=1.2,spawnMult=0.55,scalePower=3.0,
+    -- Open-field maze builder: enemies spawn left, grab beach babes on right, run back
+    {id="azshara",name="Azshara Beach",img="AZ small",difficulty="Mythic",diffColor={0.4,0.2,0.9},totalWaves=60,startGold=175,startLives=8,
+        desc="Naga raid the beach! Build mazes to stop them reaching the babes on the right - and escaping back left.",rewardItem="tidalscepter",hpMult=1.5,speedMult=1.2,spawnMult=0.55,scalePower=3.0,
         enemyBias={scout=3,healer=3,boss=2,swarm=4},burstWaves={6,12,18,24,30,36,42,48,54,60},
-        flavor="Naga Ambush - Enemies flank from mid-path",secret=true,unlockReq="cavernstime",
+        flavor="Open Field - Build mazes to protect the beach!",secret=true,unlockReq="cavernstime",
         boss="azshara",bossWaves={12,24,36,48,60},
         bossSequence={"tethyr","nightbane","redpath","illidan","azshara"},
-        ambushWaypointIdx=8,ambushWaves={3,7,11,15,19,23,27,31,35,39,43,47,51,55,59},
+        openField=true,
+        babeRows={2,5,8,11},
+        spawnRows={1,3,5,7,9,11,13},
         challenges={{id="azs_1",type="flawless",reward={item="abyssalcore"},rewardText="Abyssal Core"},
                     {id="azs_2",type="speedrun",reward={item="depthcharger"},rewardText="Depth Charge"},
                     {id="azs_3",type="endurance",reward={item="azsharastiara"},rewardText="Azshara's Tiara"}},
-        waypoints={{1,1},{8,1},{8,4},{1,4},{1,7},{10,7},{10,10},{3,10},{3,12},{14,12},{14,9},{20,9},{20,6},{12,6},{12,3},{20,3},{20,1}},
-        theme={ground={0.08,0.12,0.20},path={0.15,0.25,0.40},blocked={0.10,0.18,0.35},bChar="~",bName="Coral Reef"},
-        blocked={{4,2},{5,2},{4,3},{6,5},{6,6},{7,5},{11,8},{11,9},{12,8},{15,10},{16,10},{16,11},{17,7},{18,7},{18,8},{14,4},{15,4},{15,5},{8,11},{9,11},{2,9},{2,10},{5,7},{5,8}},
-        boons={{2,1,"power"},{6,4,"haste"},{4,7,"range"},{8,10,"power"},{12,12,"haste"},{18,9,"range"},{16,6,"power"},{14,3,"haste"},{19,1,"range"},{1,4,"power"},{10,1,"haste"},{7,7,"range"}},
-        triggerTiles={{1,7},{14,9},{20,3}},
+        waypoints={{1,7},{20,7}},
+        theme={ground={0.76,0.70,0.50},path={0.85,0.75,0.55},blocked={0.25,0.45,0.55},bChar="~",bName="Coral Reef"},
+        blocked={{5,3},{6,3},{10,6},{10,7},{15,4},{15,5},{5,10},{6,10},{10,11},{15,9},{15,10}},
+        boons={{3,1,"power"},{8,5,"haste"},{13,2,"range"},{3,12,"power"},{8,8,"haste"},{13,11,"range"},{18,4,"power"},{18,9,"haste"}},
+        triggerTiles={},
     },
 }
 
-function TD.BuildPath(md) local pC,pP,pG={},{},{}; local wp=md.waypoints
+function TD.BuildPath(md) local pC,pP,pG={},{},{}
+    -- Open-field maps have no fixed path; enemies use BFS
+    if md.openField then
+        -- Provide a dummy path point so the system doesn't break for non-open-field code
+        local cx,cy=TD.CC(1,7); pP[1]={x=cx,y=cy}; pP[2]={x=-TD.CELL,y=cy}; return pC,pP,pG end
+    local wp=md.waypoints
     for i=1,#wp-1 do local c1,r1=wp[i][1],wp[i][2]; local c2,r2=wp[i+1][1],wp[i+1][2]
         local dc=c2>c1 and 1 or(c2<c1 and -1 or 0); local dr=r2>r1 and 1 or(r2<r1 and -1 or 0); local c,r=c1,r1
         while true do if c>=1 and c<=TD.COLS and r>=1 and r<=TD.ROWS then local k=c..","..r; if not pG[k] then pG[k]=true; pC[#pC+1]={c,r}; local px,py=TD.CC(c,r); pP[#pP+1]={x=px,y=py} end end
@@ -132,14 +150,142 @@ function TD.BuildBlocked(md,pG) local bg={}; if not md.blocked then return bg en
 function TD.BuildBoons(md,pG,bG) local bg={}; if not md.boons then return bg end; for _,b in ipairs(md.boons) do local k=b[1]..","..b[2]; if not pG[k] and not bG[k] then bg[k]=b[3] end end; return bg end
 function TD.BuildTriggers(md,pG) local tG={}; if not md.triggerTiles then return tG end; for _,t in ipairs(md.triggerTiles) do local k=t[1]..","..t[2]; if pG[k] then tG[k]=true end end; return tG end
 
+-- ============================================================
+-- BFS pathfinding for open-field maps (Azshara Beach)
+-- ============================================================
+function TD.BFS(startCol,startRow,goalCol,goalRow,blocked)
+    -- blocked is a table of "c,r" -> true for impassable cells (towers + map blocked)
+    if startCol==goalCol and startRow==goalRow then return {{startCol,startRow}} end
+    local key=function(c,r) return c..","..r end
+    if blocked[key(startCol,startRow)] or blocked[key(goalCol,goalRow)] then return nil end
+    local queue={{startCol,startRow}}; local head=1; local came={}; came[key(startCol,startRow)]=true
+    local dirs={{0,-1},{0,1},{-1,0},{1,0}}
+    while head<=#queue do
+        local cur=queue[head]; head=head+1; local cc,cr=cur[1],cur[2]
+        for _,d in ipairs(dirs) do local nc,nr=cc+d[1],cr+d[2]
+            if nc>=1 and nc<=TD.COLS and nr>=1 and nr<=TD.ROWS then local nk=key(nc,nr)
+                if not came[nk] and not blocked[nk] then came[nk]=key(cc,cr)
+                    if nc==goalCol and nr==goalRow then -- reconstruct
+                        local path={{nc,nr}}; local ck=nk
+                        while ck~=true do local pk=came[ck]; if pk==true then break end
+                            local dc,dr=pk:match("^(%d+),(%d+)$"); path[#path+1]={tonumber(dc),tonumber(dr)}; ck=pk end
+                        -- reverse
+                        local rev={}; for i=#path,1,-1 do rev[#rev+1]=path[i] end; return rev end
+                    queue[#queue+1]={nc,nr} end end end
+    end; return nil end
+
+-- BFS to any cell in a goal column (e.g. col 20 for babes, col 1 for exit)
+function TD.BFSToColumn(startCol,startRow,goalCol,blocked)
+    local key=function(c,r) return c..","..r end
+    if blocked[key(startCol,startRow)] then return nil end
+    if startCol==goalCol then return {{startCol,startRow}} end
+    local queue={{startCol,startRow}}; local head=1; local came={}; came[key(startCol,startRow)]=true
+    local dirs={{0,-1},{0,1},{-1,0},{1,0}}
+    while head<=#queue do
+        local cur=queue[head]; head=head+1; local cc,cr=cur[1],cur[2]
+        for _,d in ipairs(dirs) do local nc,nr=cc+d[1],cr+d[2]
+            if nc>=1 and nc<=TD.COLS and nr>=1 and nr<=TD.ROWS then local nk=key(nc,nr)
+                if not came[nk] and not blocked[nk] then came[nk]=key(cc,cr)
+                    if nc==goalCol then -- reconstruct
+                        local path={{nc,nr}}; local ck=nk
+                        while ck~=true do local pk=came[ck]; if pk==true then break end
+                            local dc,dr=pk:match("^(%d+),(%d+)$"); path[#path+1]={tonumber(dc),tonumber(dr)}; ck=pk end
+                        local rev={}; for i=#path,1,-1 do rev[#rev+1]=path[i] end; return rev end
+                    queue[#queue+1]={nc,nr} end end end
+    end; return nil end
+
+-- Build a blocked grid combining tower positions + map blocked tiles
+function TD.BuildOpenFieldBlocked(extraCol,extraRow)
+    local bg={}
+    -- Map blocked tiles
+    if TD.currentBlockedGrid then for k in pairs(TD.currentBlockedGrid) do bg[k]=true end end
+    -- All tower positions
+    for _,t in ipairs(TD.game.towers) do bg[t.col..","..t.row]=true end
+    -- Hypothetical extra tower being placed
+    if extraCol then bg[extraCol..","..extraRow]=true end
+    return bg end
+
+-- Check that all spawn rows can reach column 20 and all column-20 reachable rows can reach column 1
+function TD.ValidateOpenFieldPath(extraCol,extraRow)
+    local md=TD.game.currentMap; if not md or not md.openField then return true end
+    local bg=TD.BuildOpenFieldBlocked(extraCol,extraRow)
+    -- Check: at least one spawn row can reach right side, and from there reach left side
+    for _,sr in ipairs(md.spawnRows) do
+        local pathToRight=TD.BFSToColumn(1,sr,TD.COLS,bg)
+        if pathToRight then
+            -- The endpoint on the right side must be able to reach column 1
+            local endCell=pathToRight[#pathToRight]
+            local pathToLeft=TD.BFSToColumn(endCell[1],endCell[2],1,bg)
+            if pathToLeft then return true end end end
+    return false end
+
+-- Compute BFS path points for an enemy (spawn->right->left)
+function TD.ComputeOpenFieldPath(spawnRow)
+    local bg=TD.BuildOpenFieldBlocked()
+    local toRight=TD.BFSToColumn(1,spawnRow,TD.COLS,bg)
+    if not toRight then return nil end
+    local endCell=toRight[#toRight]
+    local toLeft=TD.BFSToColumn(endCell[1],endCell[2],1,bg)
+    if not toLeft then return nil end
+    -- Combine: toRight + toLeft (skip duplicate junction cell)
+    local full={}
+    for _,c in ipairs(toRight) do full[#full+1]=c end
+    for i=2,#toLeft do full[#full+1]=toLeft[i] end
+    -- Convert to path points
+    local pts={}; for _,c in ipairs(full) do local x,y=TD.CC(c[1],c[2]); pts[#pts+1]={x=x,y=y} end
+    -- Add exit point past left edge
+    pts[#pts+1]={x=-TD.CELL,y=pts[#pts].y}
+    return pts end
+
+-- Recalculate BFS paths for all living enemies (called after tower place/sell)
+function TD.RepathEnemies()
+    local bg=TD.BuildOpenFieldBlocked()
+    for _,e in ipairs(TD.game.enemies) do
+        if e.alive and e.ownPath then
+            -- Figure out enemy's current grid cell
+            local curCol=math.floor(e.x/TD.CELL)+1; local curRow=math.floor(e.y/TD.CELL)+1
+            if curCol<1 then curCol=1 end; if curCol>TD.COLS then curCol=TD.COLS end
+            if curRow<1 then curRow=1 end; if curRow>TD.ROWS then curRow=TD.ROWS end
+            -- Determine if enemy is heading right (toward babes) or left (returning)
+            local oldPath=e.ownPath; local totalPts=#oldPath; local pi=e.pathIndex
+            -- Find the midpoint: the rightmost cell is roughly where the enemy turns around
+            local midIdx=1; for idx,pt in ipairs(oldPath) do if pt.x>(oldPath[midIdx] or oldPath[1]).x then midIdx=idx end end
+            local headingRight=(pi<=midIdx+1)
+            local newPath
+            if headingRight then
+                -- BFS to right side, then to left
+                local toRight=TD.BFSToColumn(curCol,curRow,TD.COLS,bg)
+                if toRight then
+                    local endCell=toRight[#toRight]
+                    local toLeft=TD.BFSToColumn(endCell[1],endCell[2],1,bg)
+                    if toLeft then
+                        local pts={}
+                        for _,c in ipairs(toRight) do local x,y=TD.CC(c[1],c[2]); pts[#pts+1]={x=x,y=y} end
+                        for i=2,#toLeft do local x,y=TD.CC(toLeft[i][1],toLeft[i][2]); pts[#pts+1]={x=x,y=y} end
+                        pts[#pts+1]={x=-TD.CELL,y=pts[#pts].y}
+                        newPath=pts end end
+            else
+                -- Already heading back left, just BFS to left exit
+                local toLeft=TD.BFSToColumn(curCol,curRow,1,bg)
+                if toLeft then
+                    local pts={}
+                    for _,c in ipairs(toLeft) do local x,y=TD.CC(c[1],c[2]); pts[#pts+1]={x=x,y=y} end
+                    pts[#pts+1]={x=-TD.CELL,y=pts[#pts].y}
+                    newPath=pts end
+            end
+            if newPath and #newPath>=2 then e.ownPath=newPath; e.pathIndex=2 end
+        end end end
+
 function TD.GetMapProgress(id) TD.EnsureSaved(); return TowerDefenseSaved.maps[id] or {bestWave=0,completed=false,stars=0} end
 function TD.IsChallengeComplete(id) TD.EnsureSaved(); return TowerDefenseSaved.challenges[id]==true end
 function TD.SaveMapProgress(id,wave,total,livesLeft,startLives) TD.EnsureSaved(); local p=TD.GetMapProgress(id); if wave>p.bestWave then p.bestWave=wave end
     if wave>=total and livesLeft>0 then local stars=1; if livesLeft>=math.floor(startLives*0.5) then stars=2 end; if livesLeft>=startLives then stars=3 end
         if not p.completed then p.completed=true; local md; for _,m in ipairs(TD.MAPS) do if m.id==id then md=m; break end end
-            if md and md.rewardItem then TD.GiveItem(md.rewardItem); local d=TD.ITEM_DEFS[md.rewardItem]; DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Item: |cffffd700"..d.name.."|r") end end
+            if md and md.rewardItem then TD.GiveItem(md.rewardItem); DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Item: "..TD.ItemLink(md.rewardItem)) end end
         if stars>(p.stars or 0) then p.stars=stars end end; TowerDefenseSaved.maps[id]=p end
 function TD.CheckChallenges(md,tr) if not md.challenges then return end; for _,ch in ipairs(md.challenges) do if not TD.IsChallengeComplete(ch.id) then
     local cd=TD.CHALLENGE_DEFS[ch.type]; if cd and cd.check(tr) then TowerDefenseSaved.challenges[ch.id]=true
         if ch.reward.spec then TD.UnlockSpec(ch.reward.spec) end; if ch.reward.item then TD.GiveItem(ch.reward.item) end
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r |cffffd700"..cd.name.."|r! "..ch.rewardText) end end end end
+        local parts={}; if ch.reward.item then parts[#parts+1]=TD.ItemLink(ch.reward.item) end
+        if ch.reward.spec then parts[#parts+1]=TD.SpecLink(ch.reward.spec) end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r |cffffd700["..cd.name.."]|r complete! Reward: "..table.concat(parts," + ")) end end end end

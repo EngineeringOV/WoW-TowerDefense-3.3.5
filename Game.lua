@@ -1,5 +1,26 @@
 TD.currentPathCells={}; TD.currentPathPoints={}
 
+TD.trainingWaveType=nil  -- nil=standard, or enemy type name / "boss" / gimmick name
+TD.trainingStr=1.0       -- HP scale multiplier for training waves
+
+function TD.StartTraining()
+    local md=TD.TRAINING_MAP; local g=TD.game
+    g.currentMap=md; g.state=TD.S_IDLE; g.speed=1; g.equippedStats=TD.GetEquippedStats(); g.activeSpecs=TD.GetActiveSpecs()
+    g.gold=md.startGold; g.lives=md.startLives; TD.trainingWaveType=nil; TD.trainingStr=1.0
+    g.wave=0; g.totalWaves=md.totalWaves; g.selectedTower=nil; g.sellMode=false; g.spawnTimer=0; g.breakTimer=0
+    g.tracking={livesLost=0,maxTowers=0,sellCount=0,skippedAll=true,neverPaused=true,goldSpent=0,latelivesLost=0}; g.waveImmunity=nil
+    wipe(g.towers); for _,e in ipairs(g.enemies) do if e.frame then e.frame:Hide() end end; wipe(g.enemies)
+    for _,p in ipairs(g.projectiles) do if p.frame then p.frame:Hide() end end; wipe(g.projectiles); wipe(g.spawnQueue)
+    if TD.frames.towerFrames then for _,tf in ipairs(TD.frames.towerFrames) do tf:Hide() end; wipe(TD.frames.towerFrames) else TD.frames.towerFrames={} end
+    g.waveList={}
+    TD.currentPathCells,TD.currentPathPoints,TD.currentPathGrid=TD.BuildPath(md)
+    TD.currentBlockedGrid=TD.BuildBlocked(md,TD.currentPathGrid)
+    TD.currentBoonGrid=TD.BuildBoons(md,TD.currentPathGrid,TD.currentBlockedGrid)
+    TD.currentTriggerGrid=TD.BuildTriggers(md,TD.currentPathGrid)
+    TD.CreateGrid(); TD.HideUpgrade(); TD.BuildTowerBtns(); TD.ui.mapTitleL:SetText(md.name); TD.UpdateHUD(); TD.ShowGame()
+    DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Training Range - Infinite waves. /td wave <type>, /td str <num>")
+end
+
 function TD.StartMap(mapIndex)
     local md=TD.MAPS[mapIndex]; if not md then return end; local g=TD.game
     g.currentMap=md; g.state=TD.S_IDLE; g.speed=1; g.equippedStats=TD.GetEquippedStats(); g.activeSpecs=TD.GetActiveSpecs()
@@ -15,12 +36,47 @@ function TD.StartMap(mapIndex)
     TD.currentBoonGrid=TD.BuildBoons(md,TD.currentPathGrid,TD.currentBlockedGrid)
     TD.currentTriggerGrid=TD.BuildTriggers(md,TD.currentPathGrid)
     TD.CreateGrid(); TD.HideUpgrade(); TD.BuildTowerBtns(); TD.ui.mapTitleL:SetText(md.name); TD.UpdateHUD(); TD.ShowGame()
-    DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r "..md.name.." ("..md.difficulty..") - "..g.totalWaves.." waves")
-    if md.boss and TD.BOSS_DEFS[md.boss] then DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Boss: |cffff00ff"..TD.BOSS_DEFS[md.boss].name.."|r - "..TD.BOSS_DEFS[md.boss].desc) end
+    DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r "..TD.MapLink(md.id).." ("..md.difficulty..") - "..g.totalWaves.." waves")
+    if md.boss and TD.BOSS_DEFS[md.boss] then DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Boss: "..TD.BossLink(md.boss).." - "..TD.BOSS_DEFS[md.boss].desc) end
+end
+
+function TD.BuildTrainingWave(waveNum)
+    local enemies={}; local count=5+waveNum*2; local wt=TD.trainingWaveType
+    if wt and TD.ENEMY_DEFS[wt] then
+        for i=1,count do enemies[#enemies+1]=wt end
+    elseif wt=="mixed" then
+        local q=math.floor(count/5)
+        for i=1,q do enemies[#enemies+1]="runner" end; for i=1,q do enemies[#enemies+1]="scout" end
+        for i=1,q do enemies[#enemies+1]="brute" end; for i=1,q do enemies[#enemies+1]="swarm" end
+        for i=1,math.max(1,math.floor(q*0.5)) do enemies[#enemies+1]="healer" end
+    else
+        for i=1,count do enemies[#enemies+1]="runner" end
+        if waveNum>=3 then for i=1,math.floor(waveNum*0.5) do enemies[#enemies+1]="scout" end end
+        if waveNum>=5 then for i=1,math.floor(waveNum*0.3) do enemies[#enemies+1]="brute" end end
+    end
+    local hpScale=(1+(waveNum-1)*0.12)*TD.trainingStr
+    local spawnBoss=(wt=="boss" or wt=="allboss")
+    local bossId=nil
+    if spawnBoss then
+        local bossIds={"hogger","redpath","tethyr","flamelash","nightbane","sartharion","marrowgar","illidan","murozond","azshara"}
+        bossId=bossIds[((waveNum-1)%#bossIds)+1]
+    end
+    return {enemies=enemies,hpScale=hpScale,gimmickTag=nil,isBurst=false,immunity=nil,spawnMapBoss=spawnBoss,bossId=bossId}
 end
 
 function TD.StartWave()
-    local g=TD.game; g.wave=g.wave+1; g.speed=1
+    local g=TD.game; g.wave=g.wave+1; if g.speed<1 then g.speed=1 end
+    -- Training maps: refill gold/lives, never win
+    if g.currentMap and g.currentMap.training then
+        g.gold=99999; g.lives=9999
+        local wi=TD.BuildTrainingWave(g.wave); wipe(g.spawnQueue); g.waveImmunity=wi.immunity
+        for _,tn in ipairs(wi.enemies) do g.spawnQueue[#g.spawnQueue+1]={typeName=tn,hpScale=wi.hpScale,immunity=wi.immunity} end
+        if wi.spawnMapBoss and wi.bossId then g.spawnQueue[#g.spawnQueue+1]={typeName="_mapboss",hpScale=wi.hpScale,immunity=nil,bossId=wi.bossId} end
+        g.spawnTimer=0; g.state=TD.S_PLAY; g.sellMode=false; TD.UpdateHUD()
+        local wtName=TD.trainingWaveType or "standard"
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("|cff00ccff[TD]|r Training W%d (%d) [%s x%.1f]",g.wave,#g.spawnQueue,wtName,TD.trainingStr))
+        return
+    end
     if g.wave>g.totalWaves then g.state=TD.S_WIN; TD.SaveMapProgress(g.currentMap.id,g.wave-1,g.totalWaves,g.lives,g.currentMap.startLives)
         TD.CheckChallenges(g.currentMap,g.tracking); TD.UpdateHUD(); return end
     local wi=g.waveList[g.wave]; wipe(g.spawnQueue); g.waveImmunity=wi.immunity
@@ -34,8 +90,8 @@ function TD.StartWave()
             if not entry.bossId and i%2==0 then entry.ambushIdx=md.ambushWaypointIdx end end
             ambushTag=" |cff00ccff[AMBUSH]|r" end end
     g.spawnTimer=0; g.state=TD.S_PLAY; g.sellMode=false; TD.UpdateHUD()
-    local tag=wi.gimmickTag and (" - "..wi.gimmickTag) or ""; local burst=wi.isBurst and " |cffff8800[BURST]|r" or ""
-    local bossTag=""; if wi.spawnMapBoss then local bId=wi.bossId or g.currentMap.boss; if bId and TD.BOSS_DEFS[bId] then bossTag=" |cffff00ff["..TD.BOSS_DEFS[bId].name.."]|r" end end
+    local tag=wi.gimmickTag and (" - "..wi.gimmickTag) or ""; local burst=wi.isBurst and (" |HTDG:BURST|h[|cffff8800BURST|r]|h") or ""
+    local bossTag=""; if wi.spawnMapBoss then local bId=wi.bossId or g.currentMap.boss; if bId and TD.BOSS_DEFS[bId] then bossTag=" "..TD.BossLink(bId) end end
     DEFAULT_CHAT_FRAME:AddMessage(string.format("|cff00ccff[TD]|r W%d/%d (%d)%s%s%s%s",g.wave,g.totalWaves,#g.spawnQueue,tag,burst,bossTag,ambushTag))
 end
 
@@ -53,46 +109,99 @@ local function GetEF()
     ef.immBar=TD.Tex(ef,"OVERLAY",0.8,0.2,0.2,0); ef.immBar:SetHeight(3); ef.immBar:SetPoint("TOPLEFT",ef,"BOTTOMLEFT",0,-1); ef.immBar:SetPoint("TOPRIGHT",ef,"BOTTOMRIGHT",0,-1)
     -- Flash overlay for pulse/splash hit
     ef.flash=TD.Tex(ef,"OVERLAY",1,1,1,0); ef.flash:SetAllPoints()
+    -- HP number text (for "numbers" health display mode)
+    ef.hpText=TD.Lbl(ef,8,1,1,1); ef.hpText:SetPoint("TOP",ef,"BOTTOM",0,-1); ef.hpText:Hide()
     TD.frames.enemyPool[#TD.frames.enemyPool+1]=ef; return ef end
 
 local function DeepCopyAbilities(abilities) local out={}; for _,a in ipairs(abilities) do local copy={}; for k,v in pairs(a) do copy[k]=v end; out[#out+1]=copy end; return out end
 
 function TD.SpawnEnemy(tn,hpScale,immunity,startIdx)
     local d=TD.ENEMY_DEFS[tn]; if not d then return end
+    local md=TD.game.currentMap
     local ef=GetEF(); ef:SetSize(d.size,d.size); ef.body:SetVertexColor(d.color[1],d.color[2],d.color[3],1)
-    local si=startIdx or 1; local sp=TD.currentPathPoints[si]; if not sp then sp=TD.currentPathPoints[1]; si=1 end
+    -- Open-field: pick random spawn row, compute BFS path
+    local ownPath,si,sp
+    if md and md.openField then
+        local rows=md.spawnRows; local sr=rows[math.random(1,#rows)]
+        ownPath=TD.ComputeOpenFieldPath(sr)
+        if not ownPath or #ownPath<2 then return end -- no valid path, skip spawn
+        si=1; sp=ownPath[1]
+    else
+        si=startIdx or 1; sp=TD.currentPathPoints[si]; if not sp then sp=TD.currentPathPoints[1]; si=1 end
+    end
     ef:ClearAllPoints(); ef:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",sp.x,-sp.y); ef:Show()
-    local mhp=math.floor(d.hp*hpScale); local spd=d.speed; if TD.game.currentMap and TD.game.currentMap.speedMult then spd=spd*TD.game.currentMap.speedMult end
+    local mhp=math.floor(d.hp*hpScale); local spd=d.speed; if md and md.speedMult then spd=spd*md.speedMult end
     if immunity then ef.immBar:SetAlpha(0.8)
         if immunity=="nomagic" then ef.immBar:SetVertexColor(0.4,0.4,1,0.8) elseif immunity=="nophysic" then ef.immBar:SetVertexColor(0.8,0.6,0.2,0.8)
-        elseif immunity=="noslow" then ef.immBar:SetVertexColor(0.3,0.8,1,0.8) elseif immunity=="nodot" then ef.immBar:SetVertexColor(0.7,0.3,0.7,0.8)
+        elseif immunity=="noslow" then ef.immBar:SetVertexColor(0.3,0.8,1,0.8) elseif immunity=="bossnoslow" then ef.immBar:SetVertexColor(0.4,0.7,0.9,0.8) elseif immunity=="nodot" then ef.immBar:SetVertexColor(0.7,0.3,0.7,0.8)
         elseif immunity=="noaoe" then ef.immBar:SetVertexColor(1,0.5,0.2,0.8) else ef.immBar:SetVertexColor(0.8,0.2,0.2,0.8) end
     else ef.immBar:SetAlpha(0) end
     ef.flash:SetAlpha(0); if ef.nameLabel then ef.nameLabel:SetText(""); ef.nameLabel:Hide() end
     local en={typeName=tn,hp=mhp,maxHP=mhp,speed=spd,baseSpeed=spd,reward=d.reward,
-        pathIndex=si+1,x=sp.x,y=sp.y,frame=ef,slowTimer=0,alive=true,dots={},immunity=immunity,isBoss=false,abilities=nil,lastTileKey=nil,flashTimer=0}
+        pathIndex=si+1,x=sp.x,y=sp.y,frame=ef,slowTimer=0,alive=true,dots={},immunity=immunity,isBoss=false,abilities=nil,lastTileKey=nil,flashTimer=0,
+        ownPath=ownPath}
     local bw=ef.hpBg:GetWidth(); if bw<1 then bw=d.size end; ef.hpBar:SetWidth(bw)
     TD.game.enemies[#TD.game.enemies+1]=en end
 
 function TD.SpawnMapBoss(bossId,hpScale)
     local bd=TD.BOSS_DEFS[bossId]; if not bd then return end
+    local md=TD.game.currentMap
     local ef=GetEF(); ef:SetSize(bd.size,bd.size); ef.body:SetVertexColor(bd.color[1],bd.color[2],bd.color[3],1)
-    local sp=TD.currentPathPoints[1]; ef:ClearAllPoints(); ef:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",sp.x,-sp.y); ef:Show()
-    local mhp=math.floor(bd.hp*hpScale); local spd=bd.speed; if TD.game.currentMap and TD.game.currentMap.speedMult then spd=spd*TD.game.currentMap.speedMult end
+    -- Open-field: boss gets BFS path from random spawn row
+    local ownPath,sp
+    if md and md.openField then
+        local rows=md.spawnRows; local sr=rows[math.random(1,#rows)]
+        ownPath=TD.ComputeOpenFieldPath(sr)
+        if not ownPath or #ownPath<2 then sp=TD.currentPathPoints[1] else sp=ownPath[1] end
+    else sp=TD.currentPathPoints[1] end
+    ef:ClearAllPoints(); ef:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",sp.x,-sp.y); ef:Show()
+    local mhp=math.floor(bd.hp*hpScale); local spd=bd.speed; if md and md.speedMult then spd=spd*md.speedMult end
     if not ef.nameLabel then ef.nameLabel=TD.Lbl(ef,10,1,0.8,1); ef.nameLabel:SetPoint("TOP",ef,"BOTTOM",0,-5) end; ef.nameLabel:SetText(bd.name); ef.nameLabel:Show()
     ef.immBar:SetAlpha(0); ef.flash:SetAlpha(0)
     local en={typeName="_mapboss",hp=mhp,maxHP=mhp,speed=spd,baseSpeed=spd,reward=bd.reward,
         pathIndex=2,x=sp.x,y=sp.y,frame=ef,slowTimer=0,alive=true,dots={},immunity=nil,
         isBoss=true,bossId=bossId,bossName=bd.name,abilities=DeepCopyAbilities(bd.abilities),lastTileKey=nil,
-        enraged=false,metamorphed=false,vanished=false,flashTimer=0}
+        enraged=false,metamorphed=false,vanished=false,flashTimer=0,ownPath=ownPath}
     for _,ab in ipairs(en.abilities) do if ab.trigger=="onSpawn" and ab.action=="immunity" then en.immunity=ab.immType end end
     local bw=ef.hpBg:GetWidth(); if bw<1 then bw=bd.size end; ef.hpBar:SetWidth(bw)
-    TD.game.enemies[#TD.game.enemies+1]=en; DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..bd.name.." has arrived!") end
+    TD.game.enemies[#TD.game.enemies+1]=en; DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(bossId).." has arrived!") end
 
 -- Flash an enemy briefly (pulse/splash hit indicator)
 function TD.FlashEnemy(en,r,g,b)
     if not en.frame or not en.frame.flash then return end
     en.frame.flash:SetVertexColor(r or 1,g or 1,b or 1,0.7); en.flashTimer=0.15 end
+
+-- Death effect (brief expanding red X)
+TD.frames.deathFxPool={}; TD.deathFxList={}
+local function GetOverlay() if not TD.frames.fxOverlay then local o=CreateFrame("Frame",nil,TD.frames.gameArea); o:SetAllPoints(); o:SetFrameLevel(TD.frames.gameArea:GetFrameLevel()+20); TD.frames.fxOverlay=o end; return TD.frames.fxOverlay end
+function TD.SpawnDeathFx(x,y,size)
+    local fx; for _,f in ipairs(TD.frames.deathFxPool) do if not f:IsShown() then fx=f; break end end
+    if not fx then fx=TD.Lbl(GetOverlay(),14,1,0.15,0.1); fx:SetDrawLayer("OVERLAY",6); TD.frames.deathFxPool[#TD.frames.deathFxPool+1]=fx end
+    fx:SetTextColor(1,0.15,0.1,1); fx:SetAlpha(1); fx:SetText("X")
+    local fs=math.max(12,math.floor((size or 16)*0.9))
+    fx:SetFont(fx:GetFont() and select(1,fx:GetFont()) or "Fonts\\FRIZQT__.TTF",fs,"OUTLINE")
+    fx:ClearAllPoints(); fx:SetPoint("CENTER",GetOverlay(),"TOPLEFT",x,-y); fx:Show()
+    TD.deathFxList[#TD.deathFxList+1]={fs=fx,age=0,maxAge=0.45} end
+function TD.UpdateDeathFx(elapsed) local rem={}
+    for i,d in ipairs(TD.deathFxList) do d.age=d.age+elapsed
+        if d.age>=d.maxAge then d.fs:Hide(); rem[#rem+1]=i
+        else d.fs:SetAlpha(1-(d.age/d.maxAge)) end
+    end; for i=#rem,1,-1 do table.remove(TD.deathFxList,rem[i]) end end
+
+-- Combat text (floating damage numbers)
+TD.frames.combatTextPool={}; TD.combatTexts={}
+function TD.SpawnCombatText(x,y,text,r,g,b)
+    if not TD.GetSetting("combatText") then return end
+    local fs; for _,ct in ipairs(TD.frames.combatTextPool) do if not ct:IsShown() then fs=ct; break end end
+    if not fs then fs=TD.Lbl(GetOverlay(),11,1,1,1); fs:SetDrawLayer("OVERLAY",7); TD.frames.combatTextPool[#TD.frames.combatTextPool+1]=fs end
+    fs:SetTextColor(r or 1,g or 1,b or 1,1); fs:SetAlpha(1); fs:SetText(text)
+    fs:ClearAllPoints(); fs:SetPoint("CENTER",GetOverlay(),"TOPLEFT",x,-y); fs:Show()
+    TD.combatTexts[#TD.combatTexts+1]={fs=fs,x=x,y=y,age=0,maxAge=0.7} end
+function TD.UpdateCombatText(elapsed) local rem={}
+    for i,ct in ipairs(TD.combatTexts) do ct.age=ct.age+elapsed
+        if ct.age>=ct.maxAge then ct.fs:Hide(); rem[#rem+1]=i
+        else ct.y=ct.y-35*elapsed; ct.fs:ClearAllPoints(); ct.fs:SetPoint("CENTER",GetOverlay(),"TOPLEFT",ct.x,-ct.y); ct.fs:SetAlpha(1-(ct.age/ct.maxAge)) end
+    end; for i=#rem,1,-1 do table.remove(TD.combatTexts,rem[i]) end end
 
 -- Boss abilities (unchanged logic)
 function TD.UpdateBossAbilities(en,elapsed)
@@ -100,11 +209,11 @@ function TD.UpdateBossAbilities(en,elapsed)
     for _,ab in ipairs(en.abilities) do
         if ab.trigger=="onHpPct" and not ab.done and pct<=ab.pct then ab.done=true
             if ab.action=="enrage" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.enraged=true; en.dmgReduce=ab.dmgReduce or 0; en.frame.body:SetVertexColor(1,0.3,0.1,1)
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cffff4444ENRAGED!|r")
-            elseif ab.action=="metamorph" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.metamorphed=true; en.regenPct=ab.regenPct; en.immunity="noslow"; en.frame.body:SetVertexColor(0.1,0.9,0.1,1)
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cff00ff00METAMORPHOSIS!|r")
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." |cffff4444ENRAGED!|r")
+            elseif ab.action=="metamorph" then en.baseSpeed=en.baseSpeed*ab.spdMult; en.speed=en.baseSpeed; en.metamorphed=true; en.regenPct=ab.regenPct; en.immunity="bossnoslow"; en.frame.body:SetVertexColor(0.1,0.9,0.1,1)
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." |cff00ff00METAMORPHOSIS!|r")
             elseif ab.action=="rewind" then en.hp=math.floor(en.maxHP*(ab.healPct or 0.5)); en.frame.body:SetVertexColor(0.9,0.8,0.2,1)
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." |cffffd700REWINDS TIME!|r HP restored to "..math.floor((ab.healPct or 0.5)*100).."%!") end end
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." |cffffd700REWINDS TIME!|r HP restored to "..math.floor((ab.healPct or 0.5)*100).."%!") end end
         if ab.trigger=="periodic" then ab.timer=(ab.timer or 0)+elapsed
             if ab.action=="shield" and ab.timer>=ab.interval then ab.timer=0; ab.currentCharges=ab.charges; en.shieldCharges=ab.charges end
             if ab.action=="vanish" then if en.vanished then ab.vanishTimer=(ab.vanishTimer or 0)+elapsed
@@ -112,14 +221,14 @@ function TD.UpdateBossAbilities(en,elapsed)
                 elseif ab.timer>=ab.interval then ab.timer=0; en.vanished=true; ab.vanishTimer=0; en.frame:SetAlpha(0.15) end end
             if ab.action=="bonestorm" and ab.timer>=ab.interval then ab.timer=0
                 for _,e in ipairs(g.enemies) do if e.alive then e.speed=e.baseSpeed*ab.spdBuff; e.slowTimer=ab.dur end end
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName..": |cffff8800BONE STORM!|r") end end
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId)..": |cffff8800BONE STORM!|r") end end
         if en.metamorphed and en.regenPct then en.hp=math.min(en.maxHP,en.hp+en.maxHP*en.regenPct*elapsed) end end
     local col=math.floor(en.x/TD.CELL)+1; local row=math.floor(en.y/TD.CELL)+1; local tileKey=col..","..row
     if tileKey~=en.lastTileKey then en.lastTileKey=tileKey
         if TD.currentTriggerGrid[tileKey] then for _,ab in ipairs(en.abilities) do
             if ab.trigger=="onTile" and ab.action=="spawnAdds" then local wi=g.waveList[g.wave]
                 for i=1,ab.addCount do TD.SpawnEnemy(ab.addType,(wi and wi.hpScale or 1)*(ab.addHpMult or 1),nil) end
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." summons "..ab.addCount.." "..ab.addType.."s!") end end end end end
+                DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." summons "..ab.addCount.." "..ab.addType.."s!") end end end end end
 
 function TD.BossOnHit(en) if not en.abilities then return end
     for _,ab in ipairs(en.abilities) do if ab.trigger=="onHit" and ab.action=="rally" and math.random()<ab.chance then
@@ -185,7 +294,8 @@ function TD.DamageEnemy(en,damage,tower,isSplash)
     if st.critChance and math.random()<st.critChance then damage=math.floor(damage*(st.critMult or 1.5)); TD.FlashEnemy(en,1,1,0.3) end
     if st.doubleHitChance and math.random()<st.doubleHitChance then damage=damage*2; TD.FlashEnemy(en,0.4,0.8,1) end
     en.hp=en.hp-damage; if en.isBoss then TD.BossOnHit(en) end
-    if en.hp<=0 then en.alive=false; en.frame:Hide()
+    TD.SpawnCombatText(en.x+math.random(-8,8),en.y-6,tostring(damage),1,0.9,0.2)
+    if en.hp<=0 then en.alive=false; TD.SpawnDeathFx(en.x,en.y,en.frame:GetWidth()); en.frame:Hide()
         local rw=en.reward; if st.goldMult then rw=math.floor(rw*st.goldMult) end
         if st.flatBounty then rw=rw+st.flatBounty end
         if st.splashBounty and isSplash then rw=rw+st.splashBounty end
@@ -199,9 +309,10 @@ function TD.DamageEnemy(en,damage,tower,isSplash)
             if st.lifeOnBossKill and st.lifeOnBossKill>0 then local maxLives=TD.game.currentMap.startLives+(st.bonusLives or 0)
                 TD.game.lives=math.min(TD.game.lives+st.lifeOnBossKill,maxLives)
                 DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[TD]|r Boss killed! +"..st.lifeOnBossKill.." life restored!") end
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..en.bossName.." defeated! +"..rw.."g") end
+            DEFAULT_CHAT_FRAME:AddMessage("|cffff00ff[BOSS]|r "..TD.BossLink(en.bossId).." defeated! +"..rw..TD.GOLD_ICON) end
     else
-        if imm~="noslow" then local ti=tower.tier; local sp=TD.TS(spec,"slowPct",ti); local sd=TD.TS(spec,"slowDur",ti)
+        local canSlow=(imm~="noslow") and (imm~="bossnoslow" or spec.id=="frost")
+        if canSlow then local ti=tower.tier; local sp=TD.TS(spec,"slowPct",ti); local sd=TD.TS(spec,"slowDur",ti)
             if st.slowDurMult and sd>0 then sd=sd*st.slowDurMult end; if sp>0 then en.speed=en.baseSpeed*(1-sp); en.slowTimer=sd end
             -- Proc slow from item (only if tower doesn't already slow)
             if st.procSlowChance and sp==0 and math.random()<st.procSlowChance then
@@ -218,7 +329,7 @@ function TD.UpdateEnemies(elapsed) local g=TD.game; local rem={}
             if e.isBoss then TD.UpdateBossAbilities(e,elapsed) end
             -- Flash timer
             if e.flashTimer and e.flashTimer>0 then e.flashTimer=e.flashTimer-elapsed; if e.flashTimer<=0 then e.frame.flash:SetAlpha(0) end end
-            if e.hp<=0 then e.alive=false; e.frame:Hide(); rem[#rem+1]=i
+            if e.hp<=0 then e.alive=false; TD.SpawnDeathFx(e.x,e.y,e.frame:GetWidth()); e.frame:Hide(); rem[#rem+1]=i
                 local rw=e.reward; local est=g.equippedStats
                 if est.goldMult then rw=math.floor(rw*est.goldMult) end
                 if est.flatBounty then rw=rw+est.flatBounty end
@@ -227,14 +338,22 @@ function TD.UpdateEnemies(elapsed) local g=TD.game; local rem={}
                 if est.deathSplash and est.deathSplash>0 then local rad=est.deathSplashRadius or 60
                     for _,o in ipairs(g.enemies) do if o.alive and o~=e and TD.Dist(e.x,e.y,o.x,o.y)<=rad then
                         o.hp=o.hp-est.deathSplash; TD.FlashEnemy(o,1,0.6,0.2) end end end
-            else local tgt=TD.currentPathPoints[e.pathIndex]
+            else local pathPts=e.ownPath or TD.currentPathPoints; local tgt=pathPts[e.pathIndex]
                 if not tgt then g.lives=g.lives-1; g.tracking.livesLost=g.tracking.livesLost+1; if g.wave>15 then g.tracking.latelivesLost=g.tracking.latelivesLost+1 end
-                    e.alive=false; e.frame:Hide(); rem[#rem+1]=i; if g.lives<=0 then g.state=TD.S_OVER; TD.SaveMapProgress(g.currentMap.id,g.wave,g.totalWaves,0,g.currentMap.startLives) end
+                    e.alive=false; e.frame:Hide(); rem[#rem+1]=i
+                    if g.currentMap and g.currentMap.training then g.lives=9999
+                    elseif g.lives<=0 then g.state=TD.S_OVER; TD.SaveMapProgress(g.currentMap.id,g.wave,g.totalWaves,0,g.currentMap.startLives) end
                 else local dx=tgt.x-e.x; local dy=tgt.y-e.y; local dist=TD.Dist(e.x,e.y,tgt.x,tgt.y); local mv=e.speed*elapsed
                     if mv>=dist then e.x=tgt.x; e.y=tgt.y; e.pathIndex=e.pathIndex+1 else e.x=e.x+(dx/dist)*mv; e.y=e.y+(dy/dist)*mv end
                     e.frame:ClearAllPoints(); e.frame:SetPoint("CENTER",TD.frames.gameArea,"TOPLEFT",e.x,-e.y)
-                    local pct=e.hp/e.maxHP; local bw=e.frame.hpBg:GetWidth()*pct; if bw<1 then bw=1 end; e.frame.hpBar:SetWidth(bw)
-                    if pct>0.5 then e.frame.hpBar:SetVertexColor(0,1,0,1) elseif pct>0.25 then e.frame.hpBar:SetVertexColor(1,1,0,1) else e.frame.hpBar:SetVertexColor(1,0,0,1) end
+                    local pct=e.hp/e.maxHP; local hm=TD.GetSetting("healthDisplay")
+                    if hm=="bars" then e.frame.hpBg:Show(); e.frame.hpBar:Show(); if e.frame.hpText then e.frame.hpText:Hide() end
+                        local bw=e.frame.hpBg:GetWidth()*pct; if bw<1 then bw=1 end; e.frame.hpBar:SetWidth(bw)
+                        if pct>0.5 then e.frame.hpBar:SetVertexColor(0,1,0,1) elseif pct>0.25 then e.frame.hpBar:SetVertexColor(1,1,0,1) else e.frame.hpBar:SetVertexColor(1,0,0,1) end
+                    elseif hm=="numbers" then e.frame.hpBg:Hide(); e.frame.hpBar:Hide()
+                        if e.frame.hpText then e.frame.hpText:SetText(math.floor(e.hp)); e.frame.hpText:Show()
+                            if pct>0.5 then e.frame.hpText:SetTextColor(0,1,0) elseif pct>0.25 then e.frame.hpText:SetTextColor(1,1,0) else e.frame.hpText:SetTextColor(1,0,0) end end
+                    else e.frame.hpBg:Hide(); e.frame.hpBar:Hide(); if e.frame.hpText then e.frame.hpText:Hide() end end
                 end end end
     end; for i=#rem,1,-1 do table.remove(g.enemies,rem[i]) end end
 
@@ -256,10 +375,11 @@ function TD.Fire(tower,target)
 
 function TD.UpdateProjectiles(elapsed) local rem={}; local spd=TD.PROJ_SPEED
     for i,p in ipairs(TD.game.projectiles) do
-        if not p.active then rem[#rem+1]=i elseif not p.target.alive then p.frame:Hide(); p.active=false; rem[#rem+1]=i
-        elseif p.target.vanished then p.frame:Hide(); p.active=false; rem[#rem+1]=i
+        if not p.active then rem[#rem+1]=i
+        elseif not p.target.alive then p.target.incomingDmg=(p.target.incomingDmg or 0)-p.damage; p.frame:Hide(); p.active=false; rem[#rem+1]=i
+        elseif p.target.vanished then p.target.incomingDmg=(p.target.incomingDmg or 0)-p.damage; p.frame:Hide(); p.active=false; rem[#rem+1]=i
         else local tx,ty=p.target.x,p.target.y; local dx=tx-p.x; local dy=ty-p.y; local dist=TD.Dist(p.x,p.y,tx,ty); local mv=spd*elapsed
-            if mv>=dist then TD.DamageEnemy(p.target,p.damage,p.tower)
+            if mv>=dist then p.target.incomingDmg=(p.target.incomingDmg or 0)-p.damage; TD.DamageEnemy(p.target,p.damage,p.tower)
                 -- Splash visual: flash hit enemies orange
                 if p.splash>0 and p.target.immunity~="noaoe" then
                     for _,e in ipairs(TD.game.enemies) do if e~=p.target and e.alive and e.immunity~="noaoe" and not e.vanished and TD.Dist(tx,ty,e.x,e.y)<=p.splash then
@@ -285,24 +405,43 @@ function TD.UpdateTowers(elapsed)
             if tower.cooldownTimer<=0 then local dmg,rng,cd=TD.TowerEffective(tower); local best,bestProg=nil,-1
                 for _,e in ipairs(TD.game.enemies) do if e.alive and not e.vanished then
                     local dom=false; if e.immunity=="nomagic" and spec.family=="mage" then dom=true end; if e.immunity=="nophysic" and spec.family=="hunter" then dom=true end
-                    if not dom then local d=TD.Dist(tower.cx,tower.cy,e.x,e.y); if d<=rng then local prog=e.pathIndex*10000-d; if prog>bestProg then best=e; bestProg=prog end end end end end
-                if best then TD.Fire(tower,best); tower.cooldownTimer=cd end end end end end
+                    if not dom then local d=TD.Dist(tower.cx,tower.cy,e.x,e.y); if d<=rng then
+                        local ehp=e.hp-(e.incomingDmg or 0); if ehp>0 then local prog=e.pathIndex*10000-d; if prog>bestProg then best=e; bestProg=prog end end end end end end
+                if best then best.incomingDmg=(best.incomingDmg or 0)+dmg; TD.Fire(tower,best); tower.cooldownTimer=cd end end end end end
 
 function TD.UpdateSpawning(elapsed) local g=TD.game; if #g.spawnQueue==0 then return end; g.spawnTimer=g.spawnTimer+elapsed
     if g.spawnTimer>=TD.GetSpawnInterval() then g.spawnTimer=g.spawnTimer-TD.GetSpawnInterval()
         local entry=table.remove(g.spawnQueue,1); if entry.bossId then TD.SpawnMapBoss(entry.bossId,entry.hpScale) else TD.SpawnEnemy(entry.typeName,entry.hpScale,entry.immunity,entry.ambushIdx) end end end
 
 function TD.CheckWaveComplete() local g=TD.game; if g.state~=TD.S_PLAY then return end
+    -- Training: refill lives/gold continuously
+    if g.currentMap and g.currentMap.training then g.lives=9999; g.gold=99999 end
     if #g.spawnQueue==0 and #g.enemies==0 then
+        if g.currentMap and g.currentMap.training then
+            -- Training never ends - just go to break and start next wave
+            g.state=TD.S_BREAK; g.waveImmunity=nil; g.gold=99999; g.lives=9999
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Training W"..g.wave.." cleared!")
+            if g.autoWave then TD.StartWave() else g.speed=0 end; TD.UpdateHUD(); return end
         if g.wave>=g.totalWaves then g.state=TD.S_WIN; TD.SaveMapProgress(g.currentMap.id,g.wave,g.totalWaves,g.lives,g.currentMap.startLives)
             TD.CheckChallenges(g.currentMap,g.tracking); TD.UpdateHUD(); return end
         g.state=TD.S_BREAK; g.waveImmunity=nil; local bonus=3+g.wave; local st=g.equippedStats
         if st.waveGoldBonus then bonus=bonus+st.waveGoldBonus end; g.gold=g.gold+bonus
         if st.waveLifeRegen then local maxLives=g.currentMap.startLives+(st.bonusLives or 0); g.lives=math.min(g.lives+st.waveLifeRegen,maxLives) end
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r W"..g.wave.." cleared! +"..bonus.."g"); TD.UpdateHUD()
-        -- Auto-wave: immediately start next wave
-        if g.autoWave then TD.StartWave() end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r W"..g.wave.." cleared! +"..bonus..TD.GOLD_ICON)
+        -- Auto-wave: immediately start next wave; otherwise pause
+        if g.autoWave then TD.StartWave() else g.speed=0; g.tracking.neverPaused=false
+            if g.currentMap and g.currentMap.challenges then for _,ch in ipairs(g.currentMap.challenges) do
+                if ch.type=="speedrun" and not TD.IsChallengeComplete(ch.id) then DEFAULT_CHAT_FRAME:AddMessage("|cffcc4444[TD]|r Speed Run challenge failed! Auto Wave is off."); break end end end
+        end; TD.UpdateHUD()
     end end
+
+function TD.AutoUpgradeTowers() local g=TD.game; local st=g.equippedStats; local upgraded=false
+    for _,tw in ipairs(g.towers) do if tw.autoUpgrade and tw.tier<3 then
+        local spec=g.activeSpecs[tw.specIdx]; local cost=spec.upgradeCost[tw.tier+1]
+        if st.upgradeCostMult then cost=math.floor(cost*st.upgradeCostMult) end
+        if g.gold>=cost then g.gold=g.gold-cost; g.tracking.goldSpent=g.tracking.goldSpent+cost
+            tw.tier=tw.tier+1; tw.cooldownTimer=0; tw.frame.tierL:SetText("T"..tw.tier); upgraded=true end end end
+    if upgraded and TD.activeTowerPanel then TD.ShowUpgrade(TD.activeTowerPanel) end end
 
 -- Main loop
 local uiAcc=0
@@ -310,22 +449,55 @@ local function OnUpdate(self,elapsed)
     if not TD.frames.main:IsShown() then return end; local g=TD.game
     if g.state==TD.S_MENU or g.state==TD.S_IDLE or g.state==TD.S_EQUIP then return end
     if g.state==TD.S_OVER or g.state==TD.S_WIN then return end
-    if g.state==TD.S_BREAK then uiAcc=uiAcc+elapsed; if uiAcc>=0.3 then uiAcc=0; TD.UpdateHUD() end; return end
+    if g.state==TD.S_BREAK then uiAcc=uiAcc+elapsed; if uiAcc>=0.3 then uiAcc=0; TD.AutoUpgradeTowers(); TD.UpdateHUD() end; return end
     local dt=elapsed*(g.speed or 1); if dt<=0 then uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.UpdateHUD() end; return end
     TD.UpdateSpawning(dt); TD.UpdateEnemies(dt); TD.UpdateHealers(dt); TD.UpdateTowers(dt); TD.UpdateProjectiles(dt)
-    TD.UpdateAuraVisuals(elapsed); TD.CheckWaveComplete()
-    uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.UpdateHUD() end end
+    TD.UpdateCombatText(dt); TD.UpdateDeathFx(dt); TD.UpdateAuraVisuals(elapsed); TD.CheckWaveComplete()
+    uiAcc=uiAcc+elapsed; if uiAcc>=0.15 then uiAcc=0; TD.AutoUpgradeTowers(); TD.UpdateHUD() end end
 
 local function Init() TD.EnsureSaved(); TD.CreateMain(); TD.CreateMenu(); TD.CreateGameScreen()
     TD.frames.main:SetScript("OnUpdate",OnUpdate); TD.frames.main:Hide(); TD.RefreshMenu(); TD.game.state=TD.S_MENU
-    -- Hook chat links for gimmick tooltips
+    -- Hook chat links for clickable tooltips
     local origRef=SetItemRef; SetItemRef=function(link,text,button,chatFrame)
         if link and link:find("^TDG:") then local tag=link:sub(5)
             GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(tag,1,0.8,0.3)
             local info=TD.GIMMICK_INFO[tag]; if info then GameTooltip:AddLine(info,0.9,0.85,0.75,true) end; GameTooltip:Show(); return end
+        if link and link:find("^TD:boss:") then local bId=link:sub(9); local bd=TD.BOSS_DEFS[bId]
+            if bd then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(bd.name,1,0,1)
+                GameTooltip:AddLine(string.format("HP: %d  Speed: %d  Reward: %d",bd.hp,bd.speed,bd.reward),0.8,0.8,0.8)
+                GameTooltip:AddLine(bd.desc,0.9,0.85,0.75,true); GameTooltip:Show() end; return end
+        if link and link:find("^TD:enemy:") then local eId=link:sub(10); local ed=TD.ENEMY_DEFS[eId]
+            if ed then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(ed.name,ed.color[1],ed.color[2],ed.color[3])
+                GameTooltip:AddLine(string.format("HP: %d  Speed: %d  Reward: %d",ed.hp,ed.speed,ed.reward),0.8,0.8,0.8); GameTooltip:Show() end; return end
+        if link and link:find("^TD:item:") then local iId=link:sub(9); local d=TD.ITEM_DEFS[iId]
+            if d then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(d.name,d.color[1],d.color[2],d.color[3])
+                GameTooltip:AddLine(d.desc,0.9,0.85,0.75); GameTooltip:Show() end; return end
+        if link and link:find("^TD:map:") then local mId=link:sub(8)
+            for _,md in ipairs(TD.MAPS) do if md.id==mId then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR")
+                GameTooltip:AddLine(md.name,0.9,0.8,0.5); GameTooltip:AddLine(md.difficulty.." - "..md.totalWaves.." waves",md.diffColor[1],md.diffColor[2],md.diffColor[3])
+                GameTooltip:AddLine(md.desc,0.9,0.85,0.75,true); GameTooltip:Show(); break end end; return end
+        if link and link:find("^TD:spec:") then local sId=link:sub(9); local sp=TD.SPECS[sId]
+            if sp then GameTooltip:SetOwner(UIParent,"ANCHOR_CURSOR"); GameTooltip:AddLine(sp.name,sp.color[1],sp.color[2],sp.color[3])
+                GameTooltip:AddLine(sp.desc,0.9,0.85,0.75,true); GameTooltip:Show() end; return end
         return origRef(link,text,button,chatFrame) end
     DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[Tower Defense]|r v5.1. |cff00ff00/td|r to play. Click gimmick names in chat for info.") end
 SLASH_TOWERDEFENSE1="/td"; SLASH_TOWERDEFENSE2="/towerdefense"
-SlashCmdList["TOWERDEFENSE"]=function(msg) if msg=="reset" then TowerDefenseSaved={}; TD.EnsureSaved(); TD.RefreshMenu(); DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Reset."); return end
+SlashCmdList["TOWERDEFENSE"]=function(msg)
+    -- Training wave controls
+    if msg:find("^wave ") then local wt=msg:sub(6):lower():match("^%S+")
+        if wt=="standard" or wt=="normal" then TD.trainingWaveType=nil
+        elseif wt=="mixed" or wt=="boss" or wt=="allboss" then TD.trainingWaveType=wt
+        elseif TD.ENEMY_DEFS[wt] then TD.trainingWaveType=wt
+        else DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Valid types: runner, scout, brute, healer, swarm, boss, mixed, standard"); return end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Training wave type: |cffffd700"..(TD.trainingWaveType or "standard").."|r"); return end
+    if msg:find("^str ") then local n=tonumber(msg:sub(5))
+        if n and n>0 then TD.trainingStr=n; DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Training strength: |cffffd700"..string.format("%.1f",n).."|r")
+        else DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r Usage: /td str <number> (e.g. /td str 2.5)") end; return end
+    if msg=="reset" then TowerDefenseSaved={}; TD.EnsureSaved(); if TD.frames.menuFrame then TD.RefreshMenu() end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r All progress, items, and specs have been reset."); return end
+    if msg=="itsasecret" then TD.EnsureSaved()
+        for _,m in ipairs(TD.MAPS) do if not m.secret or m.id=="cavernstime" then TowerDefenseSaved.maps[m.id]={bestWave=m.totalWaves,completed=true,stars=1} end end
+        if TD.frames.menuFrame then TD.RefreshMenu() end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff[TD]|r |cffff00ffSecret levels unlocked!|r The timeways are open..."); return end
     if not TD.frames.main then return end; if TD.frames.main:IsShown() then TD.frames.main:Hide() else TD.ShowMenu() end end
 local loader=CreateFrame("Frame"); loader:RegisterEvent("PLAYER_LOGIN"); loader:SetScript("OnEvent",function(self) Init(); self:UnregisterAllEvents() end)
